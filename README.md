@@ -23,8 +23,8 @@ Appli web publiée sur GitHub Pages (`https://nonomisu.github.io/s9-interact/`),
    ; Flash Actu, Wondereye et Pixel Meet — faits (reste : mise en page de la maquette)
 4. Projet Firebase `s9-interact`, connexion Google, règles, première mise en ligne — fait
 5. Invitations des joueurs — à faire
-6. Services du VPS (`s9-miroir`, `s9-notifs`, `s9-pixel`, `s9-sauvegarde`, `s9-chronique`) — code prêt (`vps/README.md`), à installer
-7. Côté Journée RP : collection `s9`, choix « Personnages de Solution 9 » — à faire
+6. Services du VPS (`s9-miroir`, `s9-notifs`, `s9-pixel`, `s9-sauvegarde`, `s9-chronique`) — installés
+7. Côté Journée RP : collection `s9`, choix « Personnages de Solution 9 », masquer dans S9 (`hideS9`) — fait (reste la règle de lecture de `s9` dans les règles de Journée RP)
 8. Webhook Discord — à faire
 9. Test de bout en bout avec deux joueurs — à faire
 
