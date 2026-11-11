@@ -4,8 +4,8 @@ Journal RP de groupe des personnages de Solution 9 (Final Fantasy XIV) : chaque 
 de ses personnages, lit celles des autres, et reçoit récaps, nouvelles et wraps annuels. Construit sur le modèle
 d'Iloh Khurdan (`Nonomisu/khurdan`).
 
-Appli web publiée sur GitHub Pages (`https://nonomisu.github.io/s9-interact/`), données dans un projet Firebase
-propre (connexion Google, Firestore) — à créer (étape 4). Rien ici ne touche Journée RP ni Iloh Khurdan.
+Appli web publiée sur GitHub Pages (`https://nonomisu.github.io/s9-interact/`), données dans le projet Firebase
+`s9-interact` (connexion Google, Firestore). Rien ici ne touche Journée RP ni Iloh Khurdan.
 
 ## Joueurs, personnages, accès
 
@@ -21,7 +21,7 @@ propre (connexion Google, Firestore) — à créer (étape 4). Rien ici ne touch
 2. Maquette d'ambiance — validée
 3. Dépôt : copie d'Iloh Khurdan, six personnages, thème néon, mécaniques khurdanes retirées — en cours
    ; Flash Actu, Wondereye et Pixel Meet — faits (reste : mise en page de la maquette)
-4. Projet Firebase, connexion Google, règles, première mise en ligne — à faire
+4. Projet Firebase `s9-interact`, connexion Google, règles, première mise en ligne — en cours
 5. Invitations des joueurs — à faire
 6. Services du VPS (`s9-miroir`, `s9-notifs`, `s9-sauvegarde`, `s9-chronique`) — à faire
 7. Côté Journée RP : collection `s9`, choix « Personnages de Solution 9 » — à faire
