@@ -178,7 +178,24 @@ window.RP_SYNC = {
   wrapDone: y => setDoc(wrapsRef(y), { done: true, doneAt: Date.now() }, { merge: true }),
   // ---------- S9 : Flash Actu, Wondereye, Pixel Meet (voir dev/s9-modules.js) ----------
   s9Flash: (id, f) => noWrites ? Promise.resolve() : (f ? setDoc(doc(db, 'flash', id), f) : deleteDoc(doc(db, 'flash', id))).catch(report),
-  s9Account: (h, a) => noWrites ? Promise.resolve() : setDoc(doc(db, 'we_accounts', h), { ...a, player: me }, { merge: true }).catch(report),
+  s9Account: (h, a) => noWrites ? Promise.resolve() : setDoc(doc(db, 'we_accounts', h), { ...a, player: a.player || me }, { merge: true }).catch(report),
+  // Administrateur : corrige un pseudo. Nouveau compte, publications, j'aime et commentaires mis à jour, puis ancien compte retiré.
+  s9Rename: async (old, h) => {
+    if (noWrites) return;
+    try {
+      const a = (await getDoc(doc(db, 'we_accounts', old))).data(); if (!a) return;
+      await setDoc(doc(db, 'we_accounts', h), a);
+      const all = await getDocs(collection(db, 'we_posts'));
+      for (const d of all.docs) {
+        const p = d.data(), ch = {};
+        if (p.acc === old) ch.acc = h;
+        if (p.likes?.[old]) { const l = { ...p.likes }; delete l[old]; l[h] = true; ch.likes = l; }
+        if ((p.comments || []).some(c => c.acc === old)) ch.comments = p.comments.map(c => c.acc === old ? { ...c, acc: h } : c);
+        if (Object.keys(ch).length) await updateDoc(doc(db, 'we_posts', d.id), ch);
+      }
+      await deleteDoc(doc(db, 'we_accounts', old));
+    } catch (e) { report(e); }
+  },
   s9Post: (id, p) => noWrites ? Promise.resolve() : (p ? setDoc(doc(db, 'we_posts', id), { ...p, player: me }) : deleteDoc(doc(db, 'we_posts', id))).catch(report),
   s9Like: (id, h, on) => noWrites ? Promise.resolve() : updateDoc(doc(db, 'we_posts', id), new FieldPath('likes', h), on ? true : deleteField()).catch(report),
   s9Comment: (id, c) => noWrites ? Promise.resolve() : updateDoc(doc(db, 'we_posts', id), { comments: arrayUnion(c) }).catch(report),

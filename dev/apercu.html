@@ -3887,7 +3887,7 @@ function renderWeProfile(h, a) {
     ${a.bio ? `<p class="we-bio">${esc(a.bio)}</p>` : ''}
     ${others.length ? `<section><h2>Autres comptes de ${esc(c.name)}</h2><p class="home-links">${others.map(([k]) => `<button type="button" class="chip-link" data-we-acc="${esc(k)}">@${esc(k)}</button>`).join('')}</p></section>` : ''}
     <p class="home-links"><button type="button" class="chip-link" data-go="${c.id}">${icon('heartbeat')}Fiche du jour de ${esc(c.name)}</button>
-      ${playerOf(a.char) === me ? `<button type="button" class="chip-link" data-we-edit="${esc(h)}">${icon('pencil')}Modifier le compte</button>` : ''}</p>
+      ${playerOf(a.char) === me || isAdminMe() ? `<button type="button" class="chip-link" data-we-edit="${esc(h)}">${icon('pencil')}Modifier le compte</button>` : ''}</p>
     ${posts.length ? `<div class="we-grid">${posts.map(([, p]) => p.photo ? `<img src="${p.photo}" alt="" loading="lazy">` : `<span class="we-txt">${esc(p.text.slice(0, 60))}</span>`).join('')}</div>` : '<p class="reserved">Aucune publication.</p>'}`;
 }
 const openWePost = () => {
@@ -3904,11 +3904,11 @@ const openWePost = () => {
 };
 let weFile = null;
 const openWeAcc = (h = null) => {
-  const a = h ? WE_ACC[h] : null, mine = myChars();
+  const a = h ? WE_ACC[h] : null, mine = a ? C.filter(c => c.id === a.char) : myChars(), adm = !!a && isAdminMe();
   if (!mine.length) return;
   s9sheet(`<div class="s9-row"><h2>${icon('users')}${a ? 'Modifier le compte' : 'Nouveau compte'}</h2><button type="button" class="link ico-btn" data-s9-close aria-label="Fermer">${icon('cross')}</button></div>
     <div class="s9-field"><span>Personnage</span><div class="place-list">${mine.map((c, i) => `<button type="button" data-we-char="${c.id}" aria-pressed="${a ? a.char === c.id : i === 0}" ${a ? 'disabled' : ''}>${esc(c.name)}</button>`).join('')}</div></div>
-    <label class="s9-field"><span>Pseudo (sans @)</span><input type="text" id="wa-h" maxlength="24" value="${esc(h || '')}" ${a ? 'disabled' : ''} placeholder="ex. : prism.atelier" autocapitalize="off"></label>
+    <label class="s9-field"><span>Pseudo (sans @)</span><input type="text" id="wa-h" maxlength="24" value="${esc(h || '')}" ${a && !adm ? 'disabled' : ''} placeholder="ex. : prism.atelier" autocapitalize="off">${adm ? '<small class="reserved">Administrateur : tu peux corriger le pseudo. Les publications, j\'aime et commentaires suivent.</small>' : ''}</label>
     <label class="s9-field"><span>Nom affiché</span><input type="text" id="wa-name" maxlength="40" value="${esc(a?.name || '')}"></label>
     <label class="s9-field"><span>Bio</span><textarea id="wa-bio" maxlength="200">${esc(a?.bio || '')}</textarea></label>
     <div class="s9-field"><span>Type</span><div class="place-list">${[['perso', 'Personnel'], ['pro', 'Pro (boutique, scène…)']].map(([k, l]) => `<button type="button" data-we-type="${k}" aria-pressed="${(a?.type || 'perso') === k}">${l}</button>`).join('')}</div></div>
@@ -3963,12 +3963,20 @@ document.addEventListener('click', e => {
   }
   const sv = t.closest('[data-we-save]');
   if (sv) {
-    const old = sv.dataset.weSave, h = old || document.getElementById('wa-h').value.trim().replace(/^@/, '').toLowerCase(), msg = document.getElementById('wa-msg');
+    const old = sv.dataset.weSave, inp = document.getElementById('wa-h'), msg = document.getElementById('wa-msg');
+    const h = old && inp.disabled ? old : inp.value.trim().replace(/^@/, '').toLowerCase();
     if (!/^[a-z0-9._]{2,24}$/.test(h)) return msg.textContent = 'Pseudo : 2 à 24 caractères, lettres sans accent, chiffres, point ou _.';
-    if (!old && WE_ACC[h]) return msg.textContent = 'Ce pseudo est déjà pris.';
+    if (h !== old && WE_ACC[h]) return msg.textContent = 'Ce pseudo est déjà pris.';
     const char = old ? WE_ACC[old].char : document.querySelector('[data-we-char][aria-pressed="true"]').dataset.weChar;
     const a = { char, type: document.querySelector('[data-we-type][aria-pressed="true"]').dataset.weType, name: document.getElementById('wa-name').value.trim() || nameOf(char),
-      bio: document.getElementById('wa-bio').value.trim(), avatar: waAvatar !== undefined ? waAvatar : (WE_ACC[old]?.avatar || null) };
+      bio: document.getElementById('wa-bio').value.trim(), avatar: waAvatar !== undefined ? waAvatar : (WE_ACC[old]?.avatar || null),
+      player: WE_ACC[old]?.player || playerOf(char) };
+    if (old && h !== old) {   // correction du pseudo par l'administrateur : le compte et ses traces changent de nom
+      weRename(old, h); WE_ACC[h] = a; delete WE_ACC[old];
+      window.RP_SYNC?.s9Account?.(old, a)?.then?.(() => window.RP_SYNC?.s9Rename?.(old, h));
+      if (weView.as === old) weView.as = h; if (weView.acc === old) weView.acc = h;
+      s9close(); renderWe(); return;
+    }
     WE_ACC[h] = a; window.RP_SYNC?.s9Account?.(h, a); weView.as ||= h;
     s9close(); renderWe(); return;
   }
@@ -3977,6 +3985,11 @@ S9.applyWe = (accs, posts) => {
   if (accs) { Object.keys(WE_ACC).forEach(k => delete WE_ACC[k]); accs.forEach(([h, a]) => { WE_ACC[h] = a; }); }
   if (posts) { Object.keys(WE_POSTS).forEach(k => delete WE_POSTS[k]); posts.forEach(([id, p]) => { WE_POSTS[id] = p; }); }
 };
+// Renomme un pseudo dans les publications chargées (compte, j'aime, commentaires).
+const weRename = (old, h) => Object.values(WE_POSTS).forEach(p => { if (!p) return;
+  if (p.acc === old) p.acc = h;
+  if (p.likes?.[old]) { delete p.likes[old]; p.likes[h] = true; }
+  (p.comments || []).forEach(c => { if (c.acc === old) c.acc = h; }); });
 const weOf = id => Object.entries(WE_ACC).filter(([, a]) => a.char === id).map(([h]) => h);
 
 // ================================================================ Pixel Meet

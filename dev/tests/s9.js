@@ -157,6 +157,24 @@ const ok = (cond, label) => { console.log((cond ? '  ok  ' : '  ÉCHEC ') + labe
   ok(Object.values(d).some(v => v?.to === 'jynette' && v?.key?.startsWith?.('we-like:')) && Object.values(d).some(v => v?.to === 'jynette' && v?.key?.startsWith?.('we-cm:')), 'nouvelles pour Jynette (j\'aime, commentaire)');
   await ed.evaluate(() => go('prism')); await ed.waitForTimeout(200);
   ok(await ed.locator('.we-links [data-we-acc="prism.atelier"]').count() === 1, 'fiche de Prism : lien vers @prism.atelier');
+  // Correction d'un pseudo : réservée à l'administrateur
+  await jy.evaluate(() => { weView.acc = 'prism.atelier'; go('we'); }); await jy.waitForTimeout(200);
+  await jy.click('[data-we-edit="prism.atelier"]'); await jy.waitForTimeout(100);
+  ok(await jy.isDisabled('#wa-h'), 'Jynette ne peut pas changer le pseudo de son compte');
+  await jy.click('[data-s9-close]');
+  await ed.evaluate(() => { weView.acc = 'prism.atelier'; go('we'); }); await ed.waitForTimeout(200);
+  ok(await ed.locator('[data-we-edit]').count() === 0, 'Eden ne peut pas modifier le compte de Prism');
+  await nono.evaluate(() => { weView.acc = 'angelsparkle'; go('we'); }); await nono.waitForTimeout(200);
+  await nono.click('[data-we-edit="angelsparkle"]'); await nono.waitForTimeout(100);
+  ok(!(await nono.isDisabled('#wa-h')) && await nono.locator('[data-we-char]').count() === 1, 'Nono (admin) peut corriger le pseudo de Joy');
+  await nono.fill('#wa-h', 'prism.atelier'); await nono.click('[data-we-save]'); await nono.waitForTimeout(200);
+  ok((await nono.textContent('#wa-msg')).includes('déjà pris'), 'correction : pseudo déjà pris refusé');
+  await nono.fill('#wa-h', 'angelsparkle007'); await nono.click('[data-we-save]'); await nono.waitForTimeout(1500);
+  d = await db(nono);
+  ok(!d['we_accounts/angelsparkle'] && d['we_accounts/angelsparkle007']?.player === 'eden' && d['we_accounts/angelsparkle007']?.char === 'joy', 'compte renommé, toujours à Eden');
+  ok(d[`we_posts/${pid}`]?.likes?.angelsparkle007 === true && !d[`we_posts/${pid}`]?.likes?.angelsparkle && d[`we_posts/${pid}`]?.comments?.[0]?.acc === 'angelsparkle007', 'j\'aime et commentaire suivent le nouveau pseudo');
+  await ed.waitForTimeout(500); await ed.evaluate(() => { weView.acc = null; go('we'); }); await ed.waitForTimeout(200);
+  ok(await ed.evaluate(() => myAccs().map(a => a.h).join()) === 'angelsparkle007', 'Eden garde son compte sous le nouveau pseudo');
 
   console.log('Pixel Meet');
   await ed.evaluate(() => go('pm')); await ed.waitForTimeout(200);
