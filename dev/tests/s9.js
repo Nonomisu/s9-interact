@@ -173,7 +173,7 @@ const ok = (cond, label) => { console.log((cond ? '  ok  ' : '  ÉCHEC ') + labe
   d = await db(nono);
   ok(!d['we_accounts/angelsparkle'] && d['we_accounts/angelsparkle007']?.player === 'eden' && d['we_accounts/angelsparkle007']?.char === 'joy', 'compte renommé, toujours à Eden');
   ok(d[`we_posts/${pid}`]?.likes?.angelsparkle007 === true && !d[`we_posts/${pid}`]?.likes?.angelsparkle && d[`we_posts/${pid}`]?.comments?.[0]?.acc === 'angelsparkle007', 'j\'aime et commentaire suivent le nouveau pseudo');
-  await ed.waitForTimeout(500); await ed.evaluate(() => { weView.acc = null; go('we'); }); await ed.waitForTimeout(200);
+  await ed.waitForTimeout(1500); await ed.evaluate(() => { weView.acc = null; go('we'); }); await ed.waitForTimeout(300);
   ok(await ed.evaluate(() => myAccs().map(a => a.h).join()) === 'angelsparkle007', 'Eden garde son compte sous le nouveau pseudo');
 
   console.log('Pixel Meet');
@@ -183,7 +183,9 @@ const ok = (cond, label) => { console.log((cond ? '  ok  ' : '  ÉCHEC ') + labe
   await jy.click('[data-pm-edit="prism"]'); await jy.fill('[data-pm-f="pseudo"]', 'PrismQueen'); await jy.click('[data-pm-save="prism"]'); await jy.waitForTimeout(400);
   await jy.click('[data-pm-tab="profile"]'); await jy.click('[data-pm-edit="aaron"]'); await jy.fill('[data-pm-f="pseudo"]', 'GridRunner'); await jy.click('[data-pm-save="aaron"]'); await jy.waitForTimeout(800);
   d = await db(jy);
-  ok(d['pm_profiles/prism'] && !d['pm_profiles/prism'].visibleTo.includes('nono') && d['pm_profiles/aaron'].visibleTo.includes('nono'), 'profil de Prism caché au joueur d\'Echo, celui d\'Aaron non');
+  ok(d['pm_profiles/prism']?.visibleTo.includes('nono') && d['pm_profiles/aaron'].visibleTo.includes('nono'), 'profils de Prism et d\'Aaron visibles par Nono (joueur d\'Echo)');
+  await jy.evaluate(() => S9.applyPm(Object.entries(PM_PROFILES).map(([k, v]) => [k, k === 'prism' ? { ...v, visibleTo: ['jynette', 'eden', 'idriss', 'lou'] } : v]), null)); await jy.waitForTimeout(800);
+  ok((await db(jy))['pm_profiles/prism']?.visibleTo.includes('nono'), 'ancien profil caché : rendu visible à tous à l\'ouverture');
   await jy.click('[data-pm-as="aaron"]'); await jy.click('[data-pm-tab="discover"]'); await jy.waitForTimeout(200);
   await jy.click('[data-pm-write="joy"]'); await jy.fill('#pm-text', 'Salut Angel !'); await jy.click('[data-pm-send]'); await jy.waitForTimeout(1500);
   d = await db(jy);
@@ -197,7 +199,7 @@ const ok = (cond, label) => { console.log((cond ? '  ok  ' : '  ÉCHEC ') + labe
   ok((await ed.textContent('.pm-convo')).includes('Salut Angel !'), 'Eden lit le message');
   await nono.evaluate(() => { pmView.tab = 'discover'; go('pm'); }); await nono.waitForTimeout(300);
   const nd = await nono.textContent('#view');
-  ok(nd.includes('GridRunner') && nd.includes('AngelSparkle007') && !nd.includes('PrismQueen'), 'Nono voit Aaron et Joy dans « Découvrir », pas Prism');
+  ok(nd.includes('GridRunner') && nd.includes('AngelSparkle007') && nd.includes('PrismQueen'), 'Nono voit Aaron, Joy et Prism dans « Découvrir »');
   ok(await nono.evaluate(() => Object.keys(PM_THREADS).length) === 0, 'Nono ne voit aucune conversation des autres');
 
   console.log('Mise en page');

@@ -252,7 +252,7 @@ const weOf = id => Object.entries(WE_ACC).filter(([, a]) => a.char === id).map((
 
 // ================================================================ Pixel Meet
 // Privé. pm_profiles/{perso} : profil + réglages ; visibleTo = joueurs qui le voient dans « Découvrir »
-// (tous, sauf le joueur du partenaire en couple). pm_threads/{id} : { a, b (perso ou null), npc?, players, last, at, seen: { joueur: ms } },
+// (tous les joueurs ; les conversations restent réservées à leurs participants). pm_threads/{id} : { a, b (perso ou null), npc?, players, last, at, seen: { joueur: ms } },
 // messages dans pm_threads/{id}/msgs. Les accroches de PNJ sont écrites par le service s9-pixel du VPS (étape 6).
 const PM_PROFILES = {}, PM_THREADS = {}, PM_MSGS = {};
 const pmView = { tab: 'inbox', thread: null, as: null };
@@ -262,7 +262,7 @@ const PM_FREQ = [['calme', 'Calme · ~1 / semaine'], ['normal', 'Normal · 2 à 
 const PM_TONES = [['classique', 'Classique'], ['taquin', 'Taquin'], ['direct', 'Direct']];
 const pmMine = () => myChars().map(c => c.id).filter(id => PM_PROFILES[id]);
 const pmAs = () => { const m = pmMine(); return m.includes(pmView.as) ? pmView.as : m[0] || null; };
-const pmVisibleTo = id => { const p = partnerOf(id); return PLAYERS.map(x => x.id).filter(x => x !== (p ? playerOf(p) : null) || x === playerOf(id)); };
+const pmVisibleTo = () => PLAYERS.map(x => x.id);
 const pmThreadsOf = id => Object.entries(PM_THREADS).filter(([, t]) => t && (t.a === id || t.b === id)).sort((x, y) => y[1].at - x[1].at);
 const pmUnread = t => (t.at || 0) > (t.seen?.[me] || 0) && t.lastBy !== me;
 const pmName = (t, id) => { const o = t.a === id ? t.b : t.a; return o ? PM_PROFILES[o]?.pseudo || nameOf(o) : t.npc?.name || 'Inconnu·e'; };
@@ -331,7 +331,6 @@ const openPmEdit = id => { const p = PM_PROFILES[id] || {};
     <label class="s9-pick"><input type="file" accept="image/*" id="pm-file" hidden><span id="pm-prev">${p.photo ? `<img src="${p.photo}" alt="">` : icon('camera')}Photo du profil</span></label>
     ${PM_FIELDS.map(([k, l, n]) => `<label class="s9-field"><span>${l}</span><input type="text" data-pm-f="${k}" maxlength="${n}" value="${esc(String(p[k] ?? ''))}"></label>`).join('')}
     <label class="s9-field"><span>Bio</span><textarea data-pm-f="bio" maxlength="800">${esc(p.bio || '')}</textarea></label>
-    ${partnerOf(id) ? `<p class="reserved">${esc(nameOf(partnerOf(id)))} ne voit pas ce profil ni ses messages.</p>` : ''}
     <button type="button" class="btn primary" data-pm-save="${id}">Enregistrer</button>`, 's9-pink'); };
 let pmPhoto;
 document.addEventListener('change', async e => {
@@ -376,6 +375,9 @@ document.addEventListener('click', e => {
 });
 S9.applyPm = (profiles, threads) => {
   if (profiles) { Object.keys(PM_PROFILES).forEach(k => delete PM_PROFILES[k]); profiles.forEach(([id, p]) => { PM_PROFILES[id] = p; }); }
+  // Anciens profils cachés au joueur du partenaire : leur joueur les rend visibles à tous en ouvrant l'appli.
+  if (profiles) Object.entries(PM_PROFILES).forEach(([id, p]) => { const all = pmVisibleTo();
+    if (p.player === me && all.some(x => !(p.visibleTo || []).includes(x))) { p.visibleTo = all; window.RP_SYNC?.s9PmProfile?.(id, { visibleTo: all }); } });
   if (threads) { Object.keys(PM_THREADS).forEach(k => delete PM_THREADS[k]); threads.forEach(([id, t]) => { PM_THREADS[id] = t; }); }
 };
 S9.applyPmMsgs = (id, list) => { PM_MSGS[id] = list; };
