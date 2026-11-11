@@ -6,7 +6,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.2.0/firebas
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut }
   from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js';
 import { initializeFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where, onSnapshot,
-  FieldPath, deleteField, serverTimestamp, runTransaction } from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js';
+  FieldPath, deleteField, serverTimestamp, runTransaction, arrayUnion, orderBy, limit } from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js';
 
 void FIREBASE_SDK;
 const sha256 = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -49,7 +49,6 @@ const subRef = async endpoint => doc(db, 'pushSubs', me, 'subs', (await sha256(e
 const wrapsRef = y => doc(db, 'shared', 'wraps-' + y);
 const recapsRef = () => doc(db, 'shared', 'recaps-' + A.iso);
 const evRef = doc(db, 'shared', 'events');
-const ilohRef = doc(db, 'shared', 'iloh');   // carte de l'Iloh : invités des yourtes (guests)   // événements du groupe : un champ par événement
 const newsRef = key => doc(db, 'news', String(key).replace(/\//g, '_'));
 
 let me = null, started = false, timer = null, base = null, viewAs = null;
@@ -114,14 +113,10 @@ window.RP_SYNC = {
   },
   revoke: email => deleteDoc(doc(db, 'access', email)),
   // Webhook Discord (salon commun) : rangé dans Firestore, lisible par les joueurs, modifiable par l'admin ; jamais dans le code.
-  saveRequest: (id, r) => noWrites ? Promise.resolve() : setDoc(doc(db, 'requests', id), r).catch(report),
-  updateRequest: (id, patch) => noWrites ? Promise.resolve() : updateDoc(doc(db, 'requests', id), patch).catch(report),
-  deleteRequest: id => noWrites ? Promise.resolve() : deleteDoc(doc(db, 'requests', id)).catch(report),
   // Inscription d'un personnage à un événement (champ par champ : deux inscriptions simultanées ne s'écrasent pas).
   setGoing: (evId, cid, player) => noWrites ? Promise.resolve() : updateDoc(evRef, new FieldPath(evId, 'going', cid), player || deleteField()).catch(report),
   // Nouvelle créée une seule fois (même clé depuis plusieurs appareils) : si elle existe déjà, l'écriture est refusée, sans erreur affichée.
   newsOnce: (key, n) => noWrites ? Promise.resolve() : setDoc(newsRef(key), { ...n, key, read: false, from: me, createdAt: serverTimestamp() }).catch(() => {}),
-  saveIloh: d => noWrites ? Promise.resolve() : setDoc(ilohRef, d, { merge: true }).catch(report),
   saveEvent: (id, e) => noWrites ? Promise.resolve() : setDoc(evRef, { [id]: e === null ? deleteField() : e }, { merge: true }).catch(report),
   setWebhook: url => setDoc(doc(db, 'shared', 'discord'), { webhook: url }, { merge: true }),
   // Toute l'année (pour le wrap) : douze mois, tous personnages.
@@ -182,7 +177,28 @@ window.RP_SYNC = {
     await sub.unsubscribe();
   },
   wrapDone: y => setDoc(wrapsRef(y), { done: true, doneAt: Date.now() }, { merge: true }),
+  // ---------- S9 : Flash Actu, Wondereye, Pixel Meet (voir dev/s9-modules.js) ----------
+  s9Flash: (id, f) => noWrites ? Promise.resolve() : (f ? setDoc(doc(db, 'flash', id), f) : deleteDoc(doc(db, 'flash', id))).catch(report),
+  s9Account: (h, a) => noWrites ? Promise.resolve() : setDoc(doc(db, 'we_accounts', h), { ...a, player: me }, { merge: true }).catch(report),
+  s9Post: (id, p) => noWrites ? Promise.resolve() : (p ? setDoc(doc(db, 'we_posts', id), { ...p, player: me }) : deleteDoc(doc(db, 'we_posts', id))).catch(report),
+  s9Like: (id, h, on) => noWrites ? Promise.resolve() : updateDoc(doc(db, 'we_posts', id), new FieldPath('likes', h), on ? true : deleteField()).catch(report),
+  s9Comment: (id, c) => noWrites ? Promise.resolve() : updateDoc(doc(db, 'we_posts', id), { comments: arrayUnion(c) }).catch(report),
+  s9PmProfile: (id, p, full = false) => noWrites ? Promise.resolve() : setDoc(doc(db, 'pm_profiles', id), full ? p : p, { merge: !full }).catch(report),
+  s9PmSend: async (id, th, m) => {
+    if (noWrites) return;
+    const { players, a, b, npc } = th;
+    await setDoc(doc(db, 'pm_threads', id), { players, a, b: b ?? null, ...(npc ? { npc } : {}), last: th.last, at: th.at, lastBy: me, seen: { [me]: th.at } }, { merge: true }).catch(report);
+    await setDoc(doc(db, 'pm_threads', id, 'msgs', m.at + '-' + me), m).catch(report);
+    S9open(id);
+  },
+  s9PmSeen: id => noWrites ? Promise.resolve() : updateDoc(doc(db, 'pm_threads', id), new FieldPath('seen', me), Date.now()).catch(() => {}),
+  s9PmOpen: id => S9open(id),
 };
+// Messages d'une conversation Pixel Meet : écoutés seulement une fois la conversation ouverte.
+const pmOpen = new Set();
+const S9open = id => { if (pmOpen.has(id)) return; pmOpen.add(id);
+  onSnapshot(query(collection(db, 'pm_threads', id, 'msgs'), orderBy('at')), s => { window.S9.applyPmMsgs(id, s.docs.map(x => x.data())); A.rerender(); },
+    e => console.warn('Pixel Meet illisible :', e.message)); };
 
 // ---------------------------------------------------------------- chargement
 async function loadMonth(ym) {
@@ -209,10 +225,10 @@ async function loadMonth(ym) {
 
 async function boot() {
   A.setMe(me);
-  const [g, d, cs, ns, dc, ev, il] = await Promise.all([
+  const [g, d, cs, ns, dc, ev] = await Promise.all([
     getDoc(gRef), getDoc(dRef), getDocs(collection(db, 'characters')),
     viewAs ? { docs: [] } : getDocs(query(collection(db, 'news'), where('to', '==', me))),   // aperçu : nouvelles d'un autre joueur illisibles pour l'admin
-    getDoc(doc(db, 'shared', 'discord')), getDoc(evRef), getDoc(ilohRef),
+    getDoc(doc(db, 'shared', 'discord')), getDoc(evRef),
   ]);
   if (window.RP_DISCORD) window.RP_DISCORD.webhook = dc.data()?.webhook || null;
   if (!g.exists() && !noWrites) await setDoc(gRef, {});
@@ -234,7 +250,6 @@ async function boot() {
   Object.entries(coupleStates).forEach(([cid, d]) => A.applyCoupleState(cid, d));
   A.hydrate({ global: g.data() || {}, day: d.data() || {}, chars, news: ns.docs.map(x => x.data()) });
   A.applyEvents(ev.data() || {});
-  A.applyIloh(il.data() || {});
   await loadMonth(prevYm(A.ym));
   await loadMonth(A.ym);
   if (!noWrites) await Promise.all(mine.map(id => setDoc(monthRef(id, A.ym), {}, { merge: true })));
@@ -306,11 +321,16 @@ function listen() {
     // Une nuit (ou une journée RP) cochée par un autre joueur sur l'un de nos personnages : on met à jour sa fiche enregistrée.
     if ('rp' in ch || 'calm' in ch) schedule();
   });
-  // Demandes de matériel : toutes pour le joueur de Khokkutsai (logistique), les siennes pour les autres.
-  if (!viewAs) onSnapshot(A.playerOf('khokkutsai') === me ? collection(db, 'requests') : query(collection(db, 'requests'), where('from', '==', me)),
-    s => { A.applyRequests(s.docs.map(x => ({ id: x.id, ...x.data() }))); A.rerender(); }, e => console.warn('Demandes de matériel illisibles :', e.message));
-  onSnapshot(ilohRef, s => { if (s.metadata.hasPendingWrites) return; A.applyIloh(s.data() || {}); A.rerender(); });
   onSnapshot(evRef, s => { if (s.metadata.hasPendingWrites) return; A.applyEvents(s.data() || {}); A.rerender(); });
+  // S9 : Flash Actu (les 60 derniers), Wondereye (comptes, 80 dernières publications), Pixel Meet (profils visibles, conversations du joueur)
+  const warn = n => e => console.warn(n + ' illisible :', e.message);
+  onSnapshot(query(collection(db, 'flash'), orderBy('at', 'desc'), limit(60)), s => { window.S9.applyFlash(s.docs.map(x => [x.id, x.data()])); A.rerender(); }, warn('Flash Actu'));
+  onSnapshot(collection(db, 'we_accounts'), s => { window.S9.applyWe(s.docs.map(x => [x.id, x.data()]), null); A.rerender(); }, warn('Wondereye'));
+  onSnapshot(query(collection(db, 'we_posts'), orderBy('at', 'desc'), limit(80)), s => { window.S9.applyWe(null, s.docs.map(x => [x.id, x.data()])); A.rerender(); }, warn('Wondereye'));
+  if (!viewAs) {
+    onSnapshot(query(collection(db, 'pm_profiles'), where('visibleTo', 'array-contains', me)), s => { window.S9.applyPm(s.docs.map(x => [x.id, x.data()]), null); A.rerender(); }, warn('Pixel Meet'));
+    onSnapshot(query(collection(db, 'pm_threads'), where('players', 'array-contains', me)), s => { window.S9.applyPm(null, s.docs.map(x => [x.id, x.data()])); A.rerender(); }, warn('Pixel Meet'));
+  }
   if (!viewAs) onSnapshot(query(collection(db, 'news'), where('to', '==', me)), s => {
     if (s.metadata.hasPendingWrites) return;
     const list = s.docs.map(x => x.data()).filter(n => !base.news.has(n.key) || base.news.get(n.key) !== !!n.read);

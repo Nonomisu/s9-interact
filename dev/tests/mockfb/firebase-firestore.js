@@ -13,11 +13,15 @@ export const deleteField = () => DEL;
 export const serverTimestamp = () => new Date().toISOString();
 export const doc = (db, ...p) => ({ path: p.join('/'), id: p[p.length - 1] });
 export const collection = (db, ...p) => ({ path: p.join('/'), coll: true });
-export const where = (f, op, v) => ({ f, v });
-export const query = (c, w) => ({ path: c.path, coll: true, w });
+export const where = (f, op, v) => ({ f, op, v });
+export const orderBy = (f, dir = 'asc') => ({ ob: f, dir });
+export const limit = n => ({ lim: n });
+export const arrayUnion = (...v) => ({ __union: v });
+export const query = (c, ...cs) => ({ path: c.path, coll: true, w: cs.find(x => x.f), ob: cs.find(x => x.ob), lim: cs.find(x => x.lim)?.lim });
 const snapDoc = (path) => ({ id: path.split('/').pop(), exists: () => path in store, data: () => store[path] ? JSON.parse(JSON.stringify(store[path])) : undefined, metadata: { hasPendingWrites: false } });
 const docsOf = q => Object.keys(store).filter(p => p.startsWith(q.path + '/') && p.split('/').length === q.path.split('/').length + 1)
-  .filter(p => !q.w || store[p][q.w.f] === q.w.v).map(snapDoc);
+  .filter(p => !q.w || (q.w.op === 'array-contains' ? (store[p][q.w.f] || []).includes(q.w.v) : store[p][q.w.f] === q.w.v))
+  .sort((a, b) => !q.ob ? 0 : (store[a][q.ob.ob] > store[b][q.ob.ob] ? 1 : -1) * (q.ob.dir === 'desc' ? -1 : 1)).slice(0, q.lim ?? Infinity).map(snapDoc);
 export const getDoc = async r => snapDoc(r.path);
 export const runTransaction = async (db, fn) => fn({ get: getDoc, set: (r, d, o) => { setDoc(r, d, o); }, update: (r, d) => { updateDoc(r, d); } });
 export const getDocs = async q => { const docs = docsOf(q); return { docs, forEach: f => docs.forEach(f) }; };
@@ -32,7 +36,7 @@ export const updateDoc = async (r, ...args) => {
   for (let i = 0; args.length > 1 && i < args.length; i += 2) pairs.push([args[i] instanceof FieldPath ? args[i].s : String(args[i]).split('.'), args[i + 1]]);
   for (const [segs, v] of pairs) {
     let o = d; for (const s of segs.slice(0, -1)) o = (o[s] ||= {});
-    if (v === DEL) delete o[segs.at(-1)]; else o[segs.at(-1)] = JSON.parse(JSON.stringify(v));
+    if (v === DEL) delete o[segs.at(-1)]; else if (v?.__union) o[segs.at(-1)] = [...(o[segs.at(-1)] || []), ...JSON.parse(JSON.stringify(v.__union))]; else o[segs.at(-1)] = JSON.parse(JSON.stringify(v));
   }
   save();
 };

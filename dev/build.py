@@ -98,6 +98,8 @@ page = one(page, "<title>S9 Interact'</title>",
 # Données d'exemple de l'aperçu
 a = js.index('// Exemple pré-rempli (aperçu seulement)'); b = js.index("let current = 'home'")
 js = js[:a] + js[b:]
+a = js.index('// S9 : exemples de l\'aperçu (début)'); b = js.index('// S9 : exemples de l\'aperçu (fin)')
+js = js[:a] + js[b:]
 js = one(js, """// Dans l'appli, « me » viendra du compte Google connecté ; ici, un sélecteur le simule.
 let me = 'nono';""", """// « me » vient du compte Google connecté (fixé par sync.js avant le premier affichage).
 let me = null;""")

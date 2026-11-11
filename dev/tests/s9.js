@@ -120,9 +120,71 @@ const ok = (cond, label) => { console.log((cond ? '  ok  ' : '  ÉCHEC ') + labe
   await nono.fill('#ev-text', "Set d'Echo samedi"); await nono.click('#ev-add'); await nono.waitForTimeout(1500);
   ok((await nono.textContent('.group-events')).includes("Set d'Echo samedi"), 'annonce affichée sur l\'accueil');
 
+  console.log('Flash Actu');
+  await nono.evaluate(() => go('home')); await nono.waitForTimeout(200);
+  ok(await nono.locator('.s9-flash').count() === 1, 'module Flash Actu sur l\'accueil');
+  await nono.click('[data-flash-new]'); await nono.click('[data-fcat="Rumeur"]');
+  await nono.fill('#f-title', 'Un drone géant au-dessus de S9'); await nono.click('[data-flash-pub]'); await nono.waitForTimeout(1500);
+  d = await db(nono);
+  const fl = Object.entries(d).filter(([k]) => k.startsWith('flash/'));
+  ok(fl.length === 1 && fl[0][1].by === 'nono' && fl[0][1].cat === 'Rumeur', 'flash enregistré');
+  const fn = Object.values(d).filter(v => v?.key?.startsWith?.('flash:'));
+  ok(fn.length === 4 && !fn.some(n => n.to === 'nono'), 'une nouvelle pour chacun des 4 autres joueurs, aucune pour l\'auteur');
+  await ed.waitForTimeout(500); await ed.evaluate(() => go('home')); await ed.waitForTimeout(300);
+  ok((await ed.textContent('.s9-flash')).includes('Un drone géant'), 'Eden voit le flash');
+  ok(await ed.locator('[data-flash-del]').count() === 0, 'Eden ne peut pas retirer le flash de Nono');
+
+  console.log('Wondereye');
+  await jy.evaluate(() => go('we')); await jy.waitForTimeout(200);
+  await jy.click('[data-we-newacc]'); await jy.click('[data-we-char="prism"]');
+  await jy.fill('#wa-h', 'prism.atelier'); await jy.fill('#wa-name', 'Atelier Prism'); await jy.click('[data-we-type="pro"]'); await jy.click('[data-we-save]'); await jy.waitForTimeout(600);
+  await jy.click('[data-we-post]'); await jy.fill('#we-text', 'Nouvelle veste #pieceunique'); await jy.click('[data-we-pub]'); await jy.waitForTimeout(1200);
+  d = await db(jy);
+  ok(d['we_accounts/prism.atelier']?.char === 'prism' && d['we_accounts/prism.atelier']?.type === 'pro', 'compte pro de Prism créé');
+  const post = Object.entries(d).find(([k, v]) => k.startsWith('we_posts/') && v.acc === 'prism.atelier');
+  ok(!!post, 'publication enregistrée');
+  await ed.evaluate(() => go('we')); await ed.waitForTimeout(300);
+  ok(await ed.locator('[data-we-like]:not([disabled])').count() === 0, 'sans compte, Eden ne peut pas aimer');
+  await ed.click('[data-we-newacc]'); await ed.fill('#wa-h', 'prism.atelier'); await ed.click('[data-we-save]'); await ed.waitForTimeout(200);
+  ok((await ed.textContent('#wa-msg')).includes('déjà pris'), 'pseudo déjà pris refusé');
+  await ed.fill('#wa-h', 'AngelSparkle'); await ed.click('[data-we-save]'); await ed.waitForTimeout(600);
+  ok(!!(await db(ed))['we_accounts/angelsparkle'], 'compte de Joy créé (pseudo en minuscules)');
+  const pid = post[0].split('/')[1];
+  await ed.click(`[data-we-like="${pid}"]`); await ed.waitForTimeout(300);
+  await ed.click(`[data-we-cm-open="${pid}"]`); await ed.fill(`#we-cm-${pid}`, 'JE LA VEUX'); await ed.click(`[data-we-cm="${pid}"]`); await ed.waitForTimeout(1500);
+  d = await db(ed);
+  ok(d[`we_posts/${pid}`]?.likes?.angelsparkle === true && d[`we_posts/${pid}`]?.comments?.[0]?.text === 'JE LA VEUX', 'j\'aime et commentaire enregistrés');
+  ok(Object.values(d).some(v => v?.to === 'jynette' && v?.key?.startsWith?.('we-like:')) && Object.values(d).some(v => v?.to === 'jynette' && v?.key?.startsWith?.('we-cm:')), 'nouvelles pour Jynette (j\'aime, commentaire)');
+  await ed.evaluate(() => go('prism')); await ed.waitForTimeout(200);
+  ok(await ed.locator('.we-links [data-we-acc="prism.atelier"]').count() === 1, 'fiche de Prism : lien vers @prism.atelier');
+
+  console.log('Pixel Meet');
+  await ed.evaluate(() => go('pm')); await ed.waitForTimeout(200);
+  await ed.click('[data-pm-edit="joy"]'); await ed.fill('[data-pm-f="pseudo"]', 'AngelSparkle007'); await ed.fill('[data-pm-f="age"]', '28'); await ed.click('[data-pm-save="joy"]'); await ed.waitForTimeout(800);
+  await jy.evaluate(() => { pmView.tab = 'inbox'; go('pm'); }); await jy.waitForTimeout(200);
+  await jy.click('[data-pm-edit="prism"]'); await jy.fill('[data-pm-f="pseudo"]', 'PrismQueen'); await jy.click('[data-pm-save="prism"]'); await jy.waitForTimeout(400);
+  await jy.click('[data-pm-tab="profile"]'); await jy.click('[data-pm-edit="aaron"]'); await jy.fill('[data-pm-f="pseudo"]', 'GridRunner'); await jy.click('[data-pm-save="aaron"]'); await jy.waitForTimeout(800);
+  d = await db(jy);
+  ok(d['pm_profiles/prism'] && !d['pm_profiles/prism'].visibleTo.includes('nono') && d['pm_profiles/aaron'].visibleTo.includes('nono'), 'profil de Prism caché au joueur d\'Echo, celui d\'Aaron non');
+  await jy.click('[data-pm-as="aaron"]'); await jy.click('[data-pm-tab="discover"]'); await jy.waitForTimeout(200);
+  await jy.click('[data-pm-write="joy"]'); await jy.fill('#pm-text', 'Salut Angel !'); await jy.click('[data-pm-send]'); await jy.waitForTimeout(1500);
+  d = await db(jy);
+  const th = Object.entries(d).find(([k, v]) => /^pm_threads\/[^/]+$/.test(k) && v.a === 'aaron' && v.b === 'joy');
+  ok(!!th && JSON.stringify(th[1].players.sort()) === '["eden","jynette"]', 'conversation Aaron → Joy, entre Jynette et Eden');
+  ok(Object.keys(d).some(k => k.startsWith(th[0] + '/msgs/')), 'message enregistré');
+  ok(Object.values(d).some(v => v?.to === 'eden' && v?.key?.startsWith?.('pm:') && v.text === 'Pixel Meet · nouveau message'), 'nouvelle discrète pour Eden');
+  await ed.waitForTimeout(600); await ed.evaluate(() => { pmView.tab = 'inbox'; go('pm'); }); await ed.waitForTimeout(300);
+  ok(await ed.locator('.pm-thread.unread').count() === 1, 'Eden voit la conversation non lue');
+  await ed.click('.pm-thread'); await ed.waitForTimeout(600);
+  ok((await ed.textContent('.pm-convo')).includes('Salut Angel !'), 'Eden lit le message');
+  await nono.evaluate(() => { pmView.tab = 'discover'; go('pm'); }); await nono.waitForTimeout(300);
+  const nd = await nono.textContent('#view');
+  ok(nd.includes('GridRunner') && nd.includes('AngelSparkle007') && !nd.includes('PrismQueen'), 'Nono voit Aaron et Joy dans « Découvrir », pas Prism');
+  ok(await nono.evaluate(() => Object.keys(PM_THREADS).length) === 0, 'Nono ne voit aucune conversation des autres');
+
   console.log('Mise en page');
   for (const [p, n] of [[nono, 'Nono'], [ed, 'Eden']]) {
-    for (const v of ['home', 'joy', 'echo', 'events']) {
+    for (const v of ['home', 'joy', 'echo', 'events', 'we', 'pm']) {
       await p.evaluate(v => go(v), v); await p.waitForTimeout(150);
       ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${n}, ${v} : rien ne dépasse (${W} px)`);
     }

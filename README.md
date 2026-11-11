@@ -20,12 +20,23 @@ propre (connexion Google, Firestore) — à créer (étape 4). Rien ici ne touch
 1. Décisions de départ — fait (cahier de lancement)
 2. Maquette d'ambiance — validée
 3. Dépôt : copie d'Iloh Khurdan, six personnages, thème néon, mécaniques khurdanes retirées — en cours
-   (reste : mise en page de la maquette, Flash Actu, Wondereye, Pixel Meet)
+   ; Flash Actu, Wondereye et Pixel Meet — faits (reste : mise en page de la maquette)
 4. Projet Firebase, connexion Google, règles, première mise en ligne — à faire
 5. Invitations des joueurs — à faire
 6. Services du VPS (`s9-miroir`, `s9-notifs`, `s9-sauvegarde`, `s9-chronique`) — à faire
 7. Côté Journée RP : collection `s9`, choix « Personnages de Solution 9 » — à faire
 8. Webhook Discord — à faire
 9. Test de bout en bout avec deux joueurs — à faire
+
+## Applis du lore
+
+- **Flash Actu** (accueil) : `flash/{id}` — tout joueur publie ; nouvelle (puis notification) pour tous les autres.
+- **Wondereye** (réseau social) : `we_accounts/{pseudo}` (plusieurs comptes par personnage, perso ou pro),
+  `we_posts/{id}` (photo compressée dans le document, j'aime, commentaires).
+- **Pixel Meet** (rencontres, privé) : `pm_profiles/{perso}` (`visibleTo` : tous les joueurs sauf celui du partenaire en couple),
+  `pm_threads/{id}` (`players` : les joueurs de la conversation) et `pm_threads/{id}/msgs`. Accroches de PNJ : service `s9-pixel` (étape 6).
+  Rien n'est envoyé sur Discord, dans la chronique ni vers Journée RP.
+
+Code : `dev/s9-modules.js` et `dev/s9-modules.css`, insérés dans `dev/apercu.html` par `python3 dev/s9-insert.py`.
 
 Développement : voir `dev/README.md`.

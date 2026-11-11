@@ -13,7 +13,8 @@ L'appli publiée (`index.html` + `app.js` à la racine) est **générée** à pa
 
 ## Modifier l'appli
 
-1. Modifier `dev/apercu.html` (et au besoin `dev/persist.js`, `dev/discord-part.js`, `sync.js`).
+1. Modifier `dev/apercu.html` (et au besoin `dev/persist.js`, `dev/discord-part.js`, `sync.js`). Flash Actu, Wondereye et Pixel Meet :
+   modifier `dev/s9-modules.js` / `dev/s9-modules.css` (exemples de l'aperçu : `dev/s9-demo.js`), puis `python3 dev/s9-insert.py`.
 2. `python3 dev/build.py` — régénère `index.html` et `app.js`.
 3. `node --check app.js`, puis tests ci-dessous.
 4. `git commit` puis `git push` : GitHub Pages publie en 1 à 2 minutes.
