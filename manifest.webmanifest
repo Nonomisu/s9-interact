@@ -1,0 +1,23 @@
+{
+  "name": "S9 Interact'",
+  "short_name": "S9 Interact'",
+  "description": "Journal partagé de la vie quotidienne des personnages de Solution 9.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a0717",
+  "theme_color": "#0a0717",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
