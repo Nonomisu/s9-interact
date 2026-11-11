@@ -39,9 +39,8 @@ const coupleRef = cid => doc(db, 'couples', cid);
 const coupleMonthRef = (cid, ym) => doc(db, 'couples', cid, 'months', ym);
 const coupleStateRef = cid => doc(db, 'couples', cid, 'state', 'main');
 // Notifications push : clé publique VAPID du service du VPS (la clé privée reste sur le VPS).
-// Clé propre à S9 Interact' (~/secrets/s9-vapid.json sur le VPS, service s9-notifs) : à renseigner à l'étape 6.
-// Vide : le bouton des notifications ne s'affiche pas.
-const VAPID_PUBLIC = '';
+// Clé propre à S9 Interact' (~/secrets/s9-vapid.json sur le VPS, service s9-notifs).
+const VAPID_PUBLIC = 'BByzVRvPAZZ5uLXQuu282O2wrx0G4txS1Nk11WFMwShbaKWC7877sVIyVEBn2vr1sjusjEGCzv0V8gEcfwJHRSw';
 const pushSupported = () => !!VAPID_PUBLIC && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 const swReg = pushSupported() ? navigator.serviceWorker.register('sw.js').catch(e => { console.error(e); return null; }) : Promise.resolve(null);
 const b64u = s => { const b = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
