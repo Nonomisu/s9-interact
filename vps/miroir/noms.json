@@ -1,0 +1,40 @@
+{
+ "chars": {
+  "echo": {
+   "name": "Echo",
+   "gender": "m",
+   "player": "nono"
+  },
+  "prism": {
+   "name": "Prism",
+   "gender": "f",
+   "player": "jynette"
+  },
+  "aaron": {
+   "name": "Aaron",
+   "gender": "m",
+   "player": "jynette"
+  },
+  "joy": {
+   "name": "Joy",
+   "gender": "f",
+   "player": "eden"
+  },
+  "tala": {
+   "name": "Tala",
+   "gender": "f",
+   "player": "idriss"
+  },
+  "yololo": {
+   "name": "Yololo",
+   "gender": "f",
+   "player": "lou"
+  }
+ },
+ "birthdays": {
+  "echo": [
+   2,
+   16
+  ]
+ }
+}

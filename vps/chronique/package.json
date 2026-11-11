@@ -1,0 +1,9 @@
+{
+  "name": "s9-chronique",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chronique de la semaine d'S9 Interact' sur Discord (service pm2 du VPS).",
+  "main": "chronique.js",
+  "scripts": { "start": "node chronique.js", "test": "node test-chronique.js" },
+  "dependencies": { "firebase-admin": "^13.0.0" }
+}

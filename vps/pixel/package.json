@@ -1,0 +1,9 @@
+{
+  "name": "s9-pixel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Accroches de PNJ de Pixel Meet pour S9 Interact' (service pm2 du VPS).",
+  "main": "pixel.js",
+  "scripts": { "start": "node pixel.js", "test": "node test-pixel.js" },
+  "dependencies": { "firebase-admin": "^13.0.0" }
+}

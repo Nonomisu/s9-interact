@@ -1,0 +1,9 @@
+{
+  "name": "s9-miroir",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Recopie à sens unique de Journée RP vers S9 Interact' (service pm2 du VPS).",
+  "main": "miroir.js",
+  "scripts": { "start": "node miroir.js", "tout": "node miroir.js --tout", "test": "node test-transform.js" },
+  "dependencies": { "firebase-admin": "^13.0.0" }
+}

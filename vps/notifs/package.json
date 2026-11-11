@@ -1,0 +1,9 @@
+{
+  "name": "s9-notifs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Notifications push d'S9 Interact' (service pm2 du VPS).",
+  "main": "notifs.js",
+  "scripts": { "start": "node notifs.js", "test": "node test-notifs.js" },
+  "dependencies": { "firebase-admin": "^13.0.0", "web-push": "^3.6.7" }
+}
