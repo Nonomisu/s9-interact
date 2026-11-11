@@ -21,7 +21,7 @@ Appli web publiée sur GitHub Pages (`https://nonomisu.github.io/s9-interact/`),
 2. Maquette d'ambiance — validée
 3. Dépôt : copie d'Iloh Khurdan, six personnages, thème néon, mécaniques khurdanes retirées — en cours
    ; Flash Actu, Wondereye et Pixel Meet — faits (reste : mise en page de la maquette)
-4. Projet Firebase `s9-interact`, connexion Google, règles, première mise en ligne — en cours
+4. Projet Firebase `s9-interact`, connexion Google, règles, première mise en ligne — fait
 5. Invitations des joueurs — à faire
 6. Services du VPS (`s9-miroir`, `s9-notifs`, `s9-sauvegarde`, `s9-chronique`) — à faire
 7. Côté Journée RP : collection `s9`, choix « Personnages de Solution 9 » — à faire
