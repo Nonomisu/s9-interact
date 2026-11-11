@@ -178,7 +178,24 @@ window.RP_SYNC = {
   wrapDone: y => setDoc(wrapsRef(y), { done: true, doneAt: Date.now() }, { merge: true }),
   // ---------- S9 : Flash Actu, Wondereye, Pixel Meet (voir dev/s9-modules.js) ----------
   s9Flash: (id, f) => noWrites ? Promise.resolve() : (f ? setDoc(doc(db, 'flash', id), f) : deleteDoc(doc(db, 'flash', id))).catch(report),
-  s9Account: (h, a) => noWrites ? Promise.resolve() : setDoc(doc(db, 'we_accounts', h), { ...a, player: me }, { merge: true }).catch(report),
+  s9Account: (h, a) => noWrites ? Promise.resolve() : setDoc(doc(db, 'we_accounts', h), { ...a, player: a.player || me }, { merge: true }).catch(report),
+  // Administrateur : corrige un pseudo. Nouveau compte, publications, j'aime et commentaires mis à jour, puis ancien compte retiré.
+  s9Rename: async (old, h) => {
+    if (noWrites) return;
+    try {
+      const a = (await getDoc(doc(db, 'we_accounts', old))).data(); if (!a) return;
+      await setDoc(doc(db, 'we_accounts', h), a);
+      const all = await getDocs(collection(db, 'we_posts'));
+      for (const d of all.docs) {
+        const p = d.data(), ch = {};
+        if (p.acc === old) ch.acc = h;
+        if (p.likes?.[old]) { const l = { ...p.likes }; delete l[old]; l[h] = true; ch.likes = l; }
+        if ((p.comments || []).some(c => c.acc === old)) ch.comments = p.comments.map(c => c.acc === old ? { ...c, acc: h } : c);
+        if (Object.keys(ch).length) await updateDoc(doc(db, 'we_posts', d.id), ch);
+      }
+      await deleteDoc(doc(db, 'we_accounts', old));
+    } catch (e) { report(e); }
+  },
   s9Post: (id, p) => noWrites ? Promise.resolve() : (p ? setDoc(doc(db, 'we_posts', id), { ...p, player: me }) : deleteDoc(doc(db, 'we_posts', id))).catch(report),
   s9Like: (id, h, on) => noWrites ? Promise.resolve() : updateDoc(doc(db, 'we_posts', id), new FieldPath('likes', h), on ? true : deleteField()).catch(report),
   s9Comment: (id, c) => noWrites ? Promise.resolve() : updateDoc(doc(db, 'we_posts', id), { comments: arrayUnion(c) }).catch(report),
@@ -382,6 +399,15 @@ function listen() {
 function schedule() { if (!started || noWrites) return; clearTimeout(timer); timer = setTimeout(flush, 700); }
 
 // Différences sur deux niveaux, pour ne réécrire que ce qui a changé (et ne pas écraser les modifications des autres).
+// Fiche du jour : une écriture par case modifiée (champ « jour.case »), une suppression par case retirée.
+function entryUps(day, prev, next) {
+  const ups = [];
+  for (const k of new Set([...Object.keys(prev), ...Object.keys(next)])) {
+    if (!(k in next) || next[k] === undefined) { if (k in prev) ups.push(new FieldPath(day, k), deleteField()); }
+    else if (J(prev[k]) !== J(next[k])) ups.push(new FieldPath(day, k), next[k]);
+  }
+  return ups;
+}
 function diff2(prev = {}, next = {}, at = []) {
   const ups = [];
   for (const k of Object.keys(next)) {
@@ -421,9 +447,13 @@ async function doFlush() {
   }
   for (const id of A.owned()) {
     const e = snap.entries[id];
-    if (J(e) !== J(base.entries[id]) && (base.entries[id] || A.meaningful(e))) {
+    const prev = base.entries[id];
+    if (J(e) !== J(prev) && (prev || A.meaningful(e))) {
       base.entries[id] = clone(e); seenToday[id] = clone(e);
-      ops.push(updateDoc(monthRef(id, A.ym), new FieldPath(A.day), e));
+      // Seulement les cases changées sur CET appareil : un appareil resté en veille avec une version ancienne
+      // ne peut plus écraser ce qu'un autre a enregistré entre-temps (validation, activités…).
+      const ups = isMap(prev) && isMap(e) ? entryUps(A.day, prev, e) : [new FieldPath(A.day), e];
+      if (ups.length) ops.push(updateDoc(monthRef(id, A.ym), ...ups));
     }
     if (J(snap.chars[id]) !== J(base.chars[id])) {
       base.chars[id] = clone(snap.chars[id]);

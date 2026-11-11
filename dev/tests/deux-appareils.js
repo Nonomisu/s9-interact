@@ -1,0 +1,40 @@
+// Deux appareils du même joueur : celui resté en veille (version ancienne) n'écrase plus la validation faite sur l'autre.
+// Usage : python3 -m http.server 8765 (à la racine du dépôt), puis node dev/tests/deux-appareils.js [port]
+const { chromium } = require('playwright'); const fs = require('fs'); const path = require('path');
+const PORT = process.argv[2] || 8765, ID = 'joy', EMAIL = 'eden@test.fr', PLAYER = 'eden';
+const ok = (c, l) => { console.log((c ? '  ok  ' : '  ÉCHEC ') + l); if (!c) process.exitCode = 1; };
+(async () => { const b = await chromium.launch();
+  const ctx = await b.newContext({ viewport: { width: 420, height: 900 } });
+  await ctx.route('https://www.gstatic.com/firebasejs/**', r => r.fulfill({ body: fs.readFileSync(path.join(__dirname, 'mockfb', r.request().url().split('/').pop())), contentType: 'application/javascript' }));
+  await ctx.route('**fonts.g*.com**', r => r.fulfill({ body: '' }));
+  await ctx.route('https://discord.com/api/webhooks/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"id":"m"}' }));
+  const errs = [], seed = { ['access/' + EMAIL]: { player: PLAYER, role: 'joueur' }, 'access/nono@test.fr': { player: 'nono', role: 'admin' } };
+  const open = async n => { const p = await ctx.newPage(); p.on('pageerror', x => errs.push(n + ': ' + x.message));
+    // « Veille » : l'appareil ne reçoit plus les modifications des autres (FREEZE), mais peut encore écrire.
+    await p.addInitScript(([a, c, s]) => { window.name = a; window.MOCK_EMAIL = c; if (!localStorage.getItem('mockdb')) localStorage.setItem('mockdb', JSON.stringify(s));
+      window.addEventListener('storage', ev => { if (window.FREEZE) ev.stopImmediatePropagation(); }, true); }, [n, EMAIL, seed]);
+    await p.goto('http://localhost:' + PORT + '/'); await p.waitForTimeout(400); if (await p.isVisible('#login-btn')) await p.click('#login-btn'); await p.waitForTimeout(1500);
+    await p.waitForFunction(() => !document.getElementById('mirror-update'), null, { timeout: 60000 }); await p.waitForTimeout(300); return p; };
+  const tel = await open('tel');
+  const ym = await tel.evaluate(() => RP_APP.ym), day = await tel.evaluate(() => RP_APP.day);
+  const entry = async () => (await tel.evaluate(() => JSON.parse(localStorage.getItem('mockdb'))))['days/' + ID + '/months/' + ym]?.[day] || {};
+  await tel.evaluate(id => go(id), ID); await tel.waitForTimeout(200);
+  await tel.fill('#mood-' + ID, 'Humeur du matin'); await tel.waitForTimeout(1500);
+  ok((await entry()).mood === 'Humeur du matin', 'téléphone : humeur enregistrée');
+  await tel.evaluate(() => { window.FREEZE = true; });
+  const pc = await open('pc');
+  await pc.evaluate(id => go(id), ID); await pc.waitForTimeout(200);
+  await pc.fill('#special-' + ID, 'Activité du PC'); await pc.click('#add-' + ID); await pc.waitForTimeout(200);
+  await pc.evaluate(id => document.getElementById('done-' + id).click(), ID); await pc.waitForTimeout(2500);
+  ok((await entry()).done === true, 'PC : fiche validée');
+  ok(await tel.evaluate(id => !state[id].done, ID), 'téléphone : encore la version d\'avant (pas validée)');
+  await tel.fill('#mood-' + ID, 'Humeur du soir'); await tel.waitForTimeout(1500);
+  const e = await entry();
+  ok(e.mood === 'Humeur du soir', 'téléphone : son humeur est enregistrée');
+  ok(e.done === true, 'la validation faite sur le PC est gardée');
+  ok(JSON.stringify(e).includes('Activité du PC'), 'l\'activité ajoutée sur le PC est gardée');
+  await tel.evaluate(() => { window.FREEZE = false; }); await tel.reload(); await tel.waitForTimeout(400); if (await tel.isVisible('#login-btn')) await tel.click('#login-btn'); await tel.waitForTimeout(1500);
+  ok(await tel.evaluate(id => state[id].done && state[id].mood === 'Humeur du soir', ID), 'téléphone réveillé : fiche validée, humeur à jour');
+  console.log('erreurs :', errs.length ? errs : 'aucune'); if (errs.length) process.exitCode = 1;
+  await b.close();
+})();
