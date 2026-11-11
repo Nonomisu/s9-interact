@@ -1753,7 +1753,7 @@ function renderEvents() {
           return `<button type="button" class="cal-day ${L.length ? 'filled ev-day' : sp.length ? 'sp-day' : ''} ${sameDay(d, rpDay) ? 'today' : ''} ${sel === iso ? 'sel' : ''}" data-ev-day="${iso}">
             <span class="n">${d.getDate()}</span>${L.length ? icon(evType(L[0][1].type).icon) : sp.length ? icon(sp[0].ico) : ''}${k > 1 ? `<i class="ev-count">${k}</i>` : ''}</button>`; }).join('')}
       </div>
-      <p class="reserved cal-legend">${icon('star')} grands jours khurdans · ${icon('cake')} anniversaires · les autres icônes : événements annoncés</p>
+      <p class="reserved cal-legend">${icon('cake')} anniversaires · les autres icônes : événements annoncés</p>
       ${sel ? `<div class="day-detail"><h3>${fmtIso(sel)}</h3>
         ${calSpecialsHtml(isoDate(sel))}
         ${selList.length ? selList.map(evCardHtml).join('') : calSpecials(isoDate(sel)).length ? '' : '<p class="reserved">Aucun événement ce jour-là.</p>'}</div>` : ''}
@@ -3504,7 +3504,7 @@ function renderCharNow(id) {
     </section>
     ${arcsSection(id)}
     <section class="infos-sec"><h2>Informations supplémentaires</h2>
-      <textarea id="infos-${id}" placeholder="Facultatif — utile pour les autres : un cheval libre à l'adoption chez les Khurdans, une annonce affichée…">${esc(s.infos || '')}</textarea></section>
+      <textarea id="infos-${id}" placeholder="Facultatif — utile pour les autres : une soirée qui se prépare, une nouveauté au shop de Prism, une annonce affichée…">${esc(s.infos || '')}</textarea></section>
     ${shotSection(id)}
     ${timeline}
     <button type="button" class="btn primary" id="done-${id}" ${s.done?'disabled':''}>${s.done ? '✓ Récap envoyé' : "J'ai terminé"}</button>
