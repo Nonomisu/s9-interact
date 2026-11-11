@@ -24,7 +24,7 @@ const JRP_NAMES = { eoor: 'Eoor', unegen: 'Unegen', yasmeen: 'Yasmeen', hokkyoku
 const who = x => typeof x !== 'string' || ILOH.includes(x) ? x : (JRP_NAMES[x] || x);
 
 // Champs de la journée qui ne sont pas repris.
-const DROP_KEYS = ['intime', 'intimeWith', 'jais', 'set', 'setLate', 'lateAt', 'wait', 'door', 'callPartner', 'returnHour',
+const DROP_KEYS = ['reopens', 'intime', 'intimeWith', 'jais', 'set', 'setLate', 'lateAt', 'wait', 'door', 'callPartner', 'returnHour',
   'discordMsg', 'film', 'nefaste', 'night', 'hideIloh', 'hideS9', 'privWith', 'msType', 'msOpen', 'loverMsg', 'violet', 'shell'];
 // Activités intimes : « Sexe avec … », « Plaisir en solo sur Moonstone » et celles marquées « intime » dans Journée RP
 // (shared/global → privActs, voir setPrivate) : jamais recopiées.
