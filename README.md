@@ -25,7 +25,7 @@ Appli web publiée sur GitHub Pages (`https://nonomisu.github.io/s9-interact/`),
 5. Invitations des joueurs — à faire
 6. Services du VPS (`s9-miroir`, `s9-notifs`, `s9-pixel`, `s9-sauvegarde`, `s9-chronique`) — installés
 7. Côté Journée RP : collection `s9`, choix « Personnages de Solution 9 », masquer dans S9 (`hideS9`) — fait
-8. Webhook Discord — à faire
+8. Webhook Discord — fait
 9. Test de bout en bout avec deux joueurs — à faire
 
 ## Applis du lore
