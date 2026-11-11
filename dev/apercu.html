@@ -767,6 +767,99 @@ button.link.danger { color: #e0a24d; }
 .pm-tabs button { flex: 1 1 auto; }
 #view > .s9-flash, #view > .we-post, #view > .pm-card, #view > .pm-convo, #view > .pm-inbox, #view > .pm-set, #view > .we-as, #view > .we-prof, #view > .we-bio { min-width: 0; text-align: left; }
 .we-top, .pm-top { text-align: center; }
+
+/* ================================================================ Habillage S9 (maquette d'ambiance) */
+:root.t-s9 { --cut: 12px; --signal: #d4ff09; }
+:root.t-s9 body {
+  background:
+    radial-gradient(120% 60% at 85% -10%, rgba(178, 75, 255, .2), transparent 60%),
+    radial-gradient(90% 50% at -10% 30%, rgba(255, 47, 166, .09), transparent 60%),
+    radial-gradient(80% 50% at 110% 90%, rgba(47, 245, 220, .07), transparent 60%),
+    linear-gradient(180deg, #120c2a, var(--bg) 60%);
+  background-attachment: fixed;
+}
+/* Lignes d'écran : très discrètes, jamais cliquables ; coupées par la case des effets ou si l'appareil demande moins d'animations */
+:root.t-s9 body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 45;
+  background: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px); mix-blend-mode: overlay; }
+:root.t-s9.no-fx body::after { display: none; }
+:root.t-s9 .s9-flicker { animation: s9flicker 7s infinite; }
+@keyframes s9flicker { 0%, 93%, 100% { opacity: 1; } 94% { opacity: .55; } 95% { opacity: 1; } 96.5% { opacity: .7; } 97% { opacity: 1; } }
+:root.t-s9.no-fx .s9-flicker, :root.t-s9.no-fx .s9-live, :root.t-s9.no-fx .s9-track { animation: none; }
+:root.t-s9.no-fx .s9-track { width: auto; flex-wrap: wrap; } :root.t-s9.no-fx .s9-track .dup { display: none; }
+@media (prefers-reduced-motion: reduce) { :root.t-s9 .s9-flicker { animation: none; } :root.t-s9 body::after { display: none; } }
+
+/* La page elle-même n'est pas un cadre (le style du bilan de l'année, .wrap, ne s'applique qu'à lui) */
+:root.t-s9 #view.wrap { padding: 0; border: 0; border-radius: 0; background: none; text-align: left; gap: 1.4rem; max-width: 42rem; }
+:root.t-s9 #view > header { text-align: left; }
+:root.t-s9 #view > header .home-links { justify-content: flex-start; }
+
+/* Titres et repères d'interface */
+:root.t-s9 h1 { text-transform: uppercase; letter-spacing: .04em;
+  text-shadow: 0 0 1px #fff, 0 0 14px color-mix(in srgb, var(--accent) 80%, transparent), 0 0 32px color-mix(in srgb, var(--accent) 45%, transparent); }
+:root.t-s9 h1.we-logo, :root.t-s9 h1.pm-logo { text-shadow: none; }
+:root.t-s9 h1.pm-logo { text-shadow: 3px 3px 0 #ff3d9a, -2px -2px 0 #2ff5dc; }
+:root.t-s9 .kicker { font: .75rem/1 var(--mono); letter-spacing: .25em; color: var(--accent); text-shadow: 0 0 8px var(--accent); }
+:root.t-s9 .date { font: .9rem/1.5 var(--mono); font-style: normal; }
+:root.t-s9 h2 { font-family: var(--display); font-weight: 600; letter-spacing: .22em; }
+
+/* Panneaux : coins coupés, filet néon en haut */
+:root.t-s9 .news, :root.t-s9 .recap, :root.t-s9 .g-event, :root.t-s9 .alert, :root.t-s9 .wrap-banner {
+  border-radius: 0; clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut))); }
+:root.t-s9 .news { border-color: var(--rule); background: rgba(24, 16, 52, .78); position: relative; }
+:root.t-s9 .news::before { content: ""; position: absolute; left: 0; top: 0; height: 2px; width: 38%;
+  background: linear-gradient(90deg, var(--accent), transparent); box-shadow: 0 0 10px var(--accent); }
+:root.t-s9 .news li { padding: .5rem .7rem; background: color-mix(in srgb, var(--news-c, var(--gold)) 9%, transparent); }
+:root.t-s9 .news li.unread::before { content: ""; }
+:root.t-s9 .news li.k-hot { --news-c: #ff4fb4; }
+:root.t-s9 .news li.k-with { --news-c: #3dff8a; }
+:root.t-s9 .news .badge { border-radius: 0; background: var(--signal); color: #121a00; font-family: var(--mono); }
+
+/* Cartes de l'accueil */
+:root.t-s9 .grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr)); gap: .8rem; }
+:root.t-s9 .card { position: relative; border-radius: 0; padding: .95rem 1rem 1.1rem;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c-gold) 14%, #181034), #181034 70%);
+  border: 1px solid color-mix(in srgb, var(--c-gold) 40%, transparent);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%); transition: border-color .2s, box-shadow .2s; }
+:root.t-s9 .card:hover { border-color: var(--c-gold); box-shadow: inset 0 0 22px color-mix(in srgb, var(--c-gold) 22%, transparent); }
+:root.t-s9 .card .grp { font: .7rem/1 var(--mono); letter-spacing: .12em; text-shadow: 0 0 6px var(--c-gold); }
+:root.t-s9 .card .name { font-size: 1.35rem; }
+:root.t-s9 .card .who { font-size: .82rem; color: var(--dim); }
+:root.t-s9 .card .state { justify-self: start; font: .72rem/1 var(--mono); font-style: normal; letter-spacing: .1em; text-transform: uppercase;
+  padding: .3rem .45rem; border: 1px solid var(--rule); color: var(--dim); }
+:root.t-s9 .card .state.done { color: #3dff8a; border-color: rgba(61,255,138,.55); }
+:root.t-s9 .card::after { content: ""; position: absolute; right: .8rem; bottom: .8rem; width: 1.6rem; height: 3px;
+  background: repeating-linear-gradient(90deg, var(--c-gold) 0 4px, transparent 4px 6px); opacity: .8; }
+
+/* Barre des personnages */
+:root.t-s9 .nav { background: rgba(8, 5, 20, .92); }
+:root.t-s9 .chip { border-radius: 0; font-family: var(--display); font-weight: 600; letter-spacing: .12em;
+  background: color-mix(in srgb, var(--c-gold) 8%, rgba(10,7,23,.6)); border-color: color-mix(in srgb, var(--c-gold) 45%, transparent);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+:root.t-s9 .chip .g { text-shadow: 0 0 6px var(--c-gold); }
+:root.t-s9 .chip[aria-current="true"] { border-color: var(--signal); box-shadow: inset 3px 0 0 var(--signal); }
+:root.t-s9 .chip .dot { border-radius: 0; transform: rotate(45deg); }
+:root.t-s9 .chip .dot.done { background: #3dff8a; box-shadow: 0 0 6px #3dff8a; }
+:root.t-s9 .nav-filter button { border-radius: 0; font-family: var(--mono); letter-spacing: .04em; }
+:root.t-s9 .nav-group { font-family: var(--mono); }
+
+/* Boutons, puces, champs */
+:root.t-s9 .chip-link { border-radius: 0; border-color: var(--rule); color: var(--text); font-family: var(--display); letter-spacing: .06em; }
+:root.t-s9 .chip-link .ico { color: var(--accent); }
+:root.t-s9 .chip-link:hover { border-color: var(--accent); }
+:root.t-s9 .btn { border-radius: 0; }
+:root.t-s9 .btn.primary { background: var(--signal); border-color: var(--signal); color: #121a00; font-weight: 700; letter-spacing: .22em;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); box-shadow: 0 0 18px rgba(212,255,9,.3); }
+:root.t-s9 .place-list button { border-radius: 0; background: transparent; border-color: rgba(190,150,255,.5); }
+:root.t-s9 .place-list button[aria-pressed="true"] { border-color: var(--accent); color: #fff; background: color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent); }
+:root.t-s9 .place-list button[aria-pressed="true"] .ico { color: var(--accent); }
+:root.t-s9 textarea, :root.t-s9 input[type=text], :root.t-s9 input[type=number] { border-radius: 0; background: rgba(10,7,23,.7); }
+:root.t-s9 .tabs button[aria-selected="true"] { color: var(--signal); border-bottom-color: var(--signal); }
+:root.t-s9 .day-info > span { border-radius: 0; font-family: var(--mono); font-size: .8rem; }
+:root.t-s9 .link.ico-btn { border-radius: 0; }
+:root.t-s9 .g-event { border-color: var(--rule); background: rgba(24,16,52,.78); }
+:root.t-s9 .g-event b { color: var(--signal); }
+:root.t-s9 .check-inline input[type=checkbox], :root.t-s9 .act input[type=checkbox] { accent-color: var(--accent); }
 /* S9-MODULES-CSS (fin) */
 </style>
 
@@ -3077,7 +3170,7 @@ function renderHome() {
     <p class="preview-note">Aperçu de l'interface : rien n'est enregistré ni envoyé sur Discord.</p>
     <div class="whoami" role="group" aria-label="Aperçu : je suis">Aperçu, connecté en tant que
       ${Object.entries(PLAYER_NAME).map(([k, n]) => `<button type="button" data-me="${k}" aria-pressed="${me === k}">${n}</button>`).join('')}</div>
-    <header><p class="kicker">${APP_NAME}</p><h1>Aujourd'hui</h1><p class="date">${today}<br>${eorzeaDate}</p>
+    <header><p class="kicker">${APP_NAME} · canal 09</p><h1 class="s9-flicker">Aujourd'hui</h1><p class="date">${today}<br>${eorzeaDate}</p>
       <p class="home-links"><button type="button" class="chip-link" data-go="we">${icon('eye')}Wondereye</button>
         <button type="button" class="chip-link" data-go="pm">${icon('heart')}Pixel Meet</button>
         <button type="button" class="chip-link" data-open-page="liens">${icon('users')}Les liens</button>
@@ -3094,12 +3187,12 @@ function renderHome() {
     <div class="grid">
       ${visible.map(c => { const t = THEMES[c.theme]; const s = state[c.id];
         return `<button type="button" class="card" id="card-${c.id}" style="${vars(t)}" data-go="${c.id}">
-          <span class="grp">${t.glyph} ${c.groups.join(' · ')}</span><span class="name">${c.name}</span>
+          <span class="grp">${t.glyph} S9-${S9.code(c.id)}</span><span class="name">${c.name}</span><span class="who">${isFem(c.id) ? 'jouée' : 'joué'} par ${esc(PLAYER_NAME[c.player] || '')}</span>
           ${(w => w ? `<span class="wx">${icon(w.icon)}${w.label}</span>` : '')(weatherFor(c.id))}
           ${alerts[c.id] ? `<span class="card-alert">${icon('warn')}${esc(alerts[c.id])}</span>` : ''}
           <span class="state ${s.done || rpPlayed[c.id] ? 'done' : ''}">${s.done ? '✓ Terminé' : rpPlayed[c.id] ? '✓ Jouée en RP' : (s.mood || s.checked.size || s.trip ? 'En cours' : 'À remplir')}</span></button>`; }).join('')}
     </div>
-    ${fxToggleHtml()}`;
+    ${S9.fxToggleHtml()}`;
   fxStart();
 }
 
@@ -3934,7 +4027,7 @@ function renderPm() {
     <div class="tabs pm-tabs" role="tablist">${[['inbox', 'Messages' + (unread ? ` (${unread})` : '')], ['profile', 'Mon profil'], ['discover', 'Découvrir'], ['settings', 'Réglages']]
       .map(([k, l]) => `<button type="button" role="tab" data-pm-tab="${k}" aria-selected="${!t && pmView.tab === k}">${l}</button>`).join('')}</div>
     ${body}`;
-  if (t && as) { (t.seen ||= {})[me] = Date.now(); window.RP_SYNC?.s9PmSeen?.(pmView.thread); }
+  if (t && as && (t.seen?.[me] || 0) < (t.at || 0)) { (t.seen ||= {})[me] = Date.now(); window.RP_SYNC?.s9PmSeen?.(pmView.thread); renderNav(); }
 }
 const pmInboxHtml = as => { const list = pmThreadsOf(as);
   return list.length ? `<ul class="pm-inbox">${list.map(([id, t]) => `<li><button type="button" class="pm-thread ${pmUnread(t) ? 'unread' : ''}" data-pm-thread="${id}">
@@ -4016,6 +4109,22 @@ S9.applyPm = (profiles, threads) => {
 };
 S9.applyPmMsgs = (id, list) => { PM_MSGS[id] = list; };
 S9.pmUnreadCount = () => myChars().reduce((n, c) => n + pmThreadsOf(c.id).filter(([, t]) => pmUnread(t)).length, 0);
+// Habillage : codes S9-01… des personnages, lignes d'écran et scintillement (case en bas de l'accueil, gardée sur l'appareil).
+const S9_CODES = { echo: '01', prism: '02', joy: '03', tala: '04', aaron: '05', yololo: '06' };
+S9.code = id => S9_CODES[id] || String(C.findIndex(c => c.id === id) + 1).padStart(2, '0');
+const S9_FX = 's9-effets';
+const s9fxOn = () => { try { return localStorage.getItem(S9_FX) !== 'off'; } catch { return true; } };
+const s9fxApply = () => document.documentElement.classList.toggle('no-fx', !s9fxOn());
+s9fxApply(); new MutationObserver(() => { if (!s9fxOn() !== document.documentElement.classList.contains('no-fx')) s9fxApply(); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+S9.fxToggleHtml = () => `<label class="check-inline fx-toggle"><input type="checkbox" id="s9-fx" ${s9fxOn() ? 'checked' : ''}> Lignes d'écran, scintillement et défilement</label>`;
+document.addEventListener('change', e => { if (e.target.id !== 's9-fx') return; try { localStorage.setItem(S9_FX, e.target.checked ? 'on' : 'off'); } catch {} s9fxApply(); });
+// Fiche d'un personnage : la page prend sa couleur (accent) ; accueil et applis gardent le violet S9.
+const s9tint = () => { const c = C.find(x => x.id === current), st = document.documentElement.style;
+  if (c) { st.setProperty('--accent', charTheme(c.id).gold); st.setProperty('--gold', charTheme(c.id).gold); } else { st.removeProperty('--accent'); st.removeProperty('--gold'); } };
+new MutationObserver(s9tint).observe(document.getElementById('view'), { childList: true });
+// Un seul groupe (Solution 9) : le filtre par groupe ne sert à rien.
+if (GROUPS.length < 2) document.getElementById('nav-groups')?.style.setProperty('display', 'none');
 S9.views = { we: () => renderWe(), pm: () => renderPm() };
 S9.flashHtml = flashHtml;
 

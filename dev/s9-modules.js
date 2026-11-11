@@ -367,5 +367,21 @@ S9.applyPm = (profiles, threads) => {
 };
 S9.applyPmMsgs = (id, list) => { PM_MSGS[id] = list; };
 S9.pmUnreadCount = () => myChars().reduce((n, c) => n + pmThreadsOf(c.id).filter(([, t]) => pmUnread(t)).length, 0);
+// Habillage : codes S9-01… des personnages, lignes d'écran et scintillement (case en bas de l'accueil, gardée sur l'appareil).
+const S9_CODES = { echo: '01', prism: '02', joy: '03', tala: '04', aaron: '05', yololo: '06' };
+S9.code = id => S9_CODES[id] || String(C.findIndex(c => c.id === id) + 1).padStart(2, '0');
+const S9_FX = 's9-effets';
+const s9fxOn = () => { try { return localStorage.getItem(S9_FX) !== 'off'; } catch { return true; } };
+const s9fxApply = () => document.documentElement.classList.toggle('no-fx', !s9fxOn());
+s9fxApply(); new MutationObserver(() => { if (!s9fxOn() !== document.documentElement.classList.contains('no-fx')) s9fxApply(); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+S9.fxToggleHtml = () => `<label class="check-inline fx-toggle"><input type="checkbox" id="s9-fx" ${s9fxOn() ? 'checked' : ''}> Lignes d'écran, scintillement et défilement</label>`;
+document.addEventListener('change', e => { if (e.target.id !== 's9-fx') return; try { localStorage.setItem(S9_FX, e.target.checked ? 'on' : 'off'); } catch {} s9fxApply(); });
+// Fiche d'un personnage : la page prend sa couleur (accent) ; accueil et applis gardent le violet S9.
+const s9tint = () => { const c = C.find(x => x.id === current), st = document.documentElement.style;
+  if (c) { st.setProperty('--accent', charTheme(c.id).gold); st.setProperty('--gold', charTheme(c.id).gold); } else { st.removeProperty('--accent'); st.removeProperty('--gold'); } };
+new MutationObserver(s9tint).observe(document.getElementById('view'), { childList: true });
+// Un seul groupe (Solution 9) : le filtre par groupe ne sert à rien.
+if (GROUPS.length < 2) document.getElementById('nav-groups')?.style.setProperty('display', 'none');
 S9.views = { we: () => renderWe(), pm: () => renderPm() };
 S9.flashHtml = flashHtml;

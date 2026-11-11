@@ -2270,7 +2270,7 @@ function renderHome() {
   const visible = C.filter(shown);
   document.getElementById('view').innerHTML = `
     <p class="session">Connecté : ${PLAYER_NAME[me]} · <button type="button" class="link" id="signout">Se déconnecter</button></p>
-    <header><p class="kicker">${APP_NAME}</p><h1>Aujourd'hui</h1><p class="date">${today}<br>${eorzeaDate}</p>
+    <header><p class="kicker">${APP_NAME} · canal 09</p><h1 class="s9-flicker">Aujourd'hui</h1><p class="date">${today}<br>${eorzeaDate}</p>
       <p class="home-links"><button type="button" class="chip-link" data-go="we">${icon('eye')}Wondereye</button>
         <button type="button" class="chip-link" data-go="pm">${icon('heart')}Pixel Meet</button>
         <button type="button" class="chip-link" data-open-page="liens">${icon('users')}Les liens</button>
@@ -2287,12 +2287,12 @@ function renderHome() {
     <div class="grid">
       ${visible.map(c => { const t = THEMES[c.theme]; const s = state[c.id];
         return `<button type="button" class="card" id="card-${c.id}" style="${vars(t)}" data-go="${c.id}">
-          <span class="grp">${t.glyph} ${c.groups.join(' · ')}</span><span class="name">${c.name}</span>
+          <span class="grp">${t.glyph} S9-${S9.code(c.id)}</span><span class="name">${c.name}</span><span class="who">${isFem(c.id) ? 'jouée' : 'joué'} par ${esc(PLAYER_NAME[c.player] || '')}</span>
           ${(w => w ? `<span class="wx">${icon(w.icon)}${w.label}</span>` : '')(weatherFor(c.id))}
           ${alerts[c.id] ? `<span class="card-alert">${icon('warn')}${esc(alerts[c.id])}</span>` : ''}
           <span class="state ${s.done || rpPlayed[c.id] ? 'done' : ''}">${s.done ? '✓ Terminé' : rpPlayed[c.id] ? '✓ Jouée en RP' : (s.mood || s.checked.size || s.trip ? 'En cours' : 'À remplir')}</span></button>`; }).join('')}
     </div>
-    ${fxToggleHtml()}
+    ${S9.fxToggleHtml()}
     ${window.RP_PUSH ? RP_PUSH.html() : ''}
     ${isAdminMe() && window.RP_DISCORD ? RP_DISCORD.settingsHtml() : ''}
     ${window.RP_ADMIN_UI ? RP_ADMIN_UI.html() : ''}`;
@@ -3129,7 +3129,7 @@ function renderPm() {
     <div class="tabs pm-tabs" role="tablist">${[['inbox', 'Messages' + (unread ? ` (${unread})` : '')], ['profile', 'Mon profil'], ['discover', 'Découvrir'], ['settings', 'Réglages']]
       .map(([k, l]) => `<button type="button" role="tab" data-pm-tab="${k}" aria-selected="${!t && pmView.tab === k}">${l}</button>`).join('')}</div>
     ${body}`;
-  if (t && as) { (t.seen ||= {})[me] = Date.now(); window.RP_SYNC?.s9PmSeen?.(pmView.thread); }
+  if (t && as && (t.seen?.[me] || 0) < (t.at || 0)) { (t.seen ||= {})[me] = Date.now(); window.RP_SYNC?.s9PmSeen?.(pmView.thread); renderNav(); }
 }
 const pmInboxHtml = as => { const list = pmThreadsOf(as);
   return list.length ? `<ul class="pm-inbox">${list.map(([id, t]) => `<li><button type="button" class="pm-thread ${pmUnread(t) ? 'unread' : ''}" data-pm-thread="${id}">
@@ -3211,6 +3211,22 @@ S9.applyPm = (profiles, threads) => {
 };
 S9.applyPmMsgs = (id, list) => { PM_MSGS[id] = list; };
 S9.pmUnreadCount = () => myChars().reduce((n, c) => n + pmThreadsOf(c.id).filter(([, t]) => pmUnread(t)).length, 0);
+// Habillage : codes S9-01… des personnages, lignes d'écran et scintillement (case en bas de l'accueil, gardée sur l'appareil).
+const S9_CODES = { echo: '01', prism: '02', joy: '03', tala: '04', aaron: '05', yololo: '06' };
+S9.code = id => S9_CODES[id] || String(C.findIndex(c => c.id === id) + 1).padStart(2, '0');
+const S9_FX = 's9-effets';
+const s9fxOn = () => { try { return localStorage.getItem(S9_FX) !== 'off'; } catch { return true; } };
+const s9fxApply = () => document.documentElement.classList.toggle('no-fx', !s9fxOn());
+s9fxApply(); new MutationObserver(() => { if (!s9fxOn() !== document.documentElement.classList.contains('no-fx')) s9fxApply(); })
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+S9.fxToggleHtml = () => `<label class="check-inline fx-toggle"><input type="checkbox" id="s9-fx" ${s9fxOn() ? 'checked' : ''}> Lignes d'écran, scintillement et défilement</label>`;
+document.addEventListener('change', e => { if (e.target.id !== 's9-fx') return; try { localStorage.setItem(S9_FX, e.target.checked ? 'on' : 'off'); } catch {} s9fxApply(); });
+// Fiche d'un personnage : la page prend sa couleur (accent) ; accueil et applis gardent le violet S9.
+const s9tint = () => { const c = C.find(x => x.id === current), st = document.documentElement.style;
+  if (c) { st.setProperty('--accent', charTheme(c.id).gold); st.setProperty('--gold', charTheme(c.id).gold); } else { st.removeProperty('--accent'); st.removeProperty('--gold'); } };
+new MutationObserver(s9tint).observe(document.getElementById('view'), { childList: true });
+// Un seul groupe (Solution 9) : le filtre par groupe ne sert à rien.
+if (GROUPS.length < 2) document.getElementById('nav-groups')?.style.setProperty('display', 'none');
 S9.views = { we: () => renderWe(), pm: () => renderPm() };
 S9.flashHtml = flashHtml;
 
