@@ -60,6 +60,9 @@ function publicEntry(e, always) {
     }
     if (Object.keys(w).length) o.withActs = w; else delete o.withActs;
   }
+  // Reprises (activité commune reprise d'une autre fiche) : seulement pour les activités communes gardées.
+  if (o.withFrom) { const wf = {}; for (const [l, f] of Object.entries(o.withFrom)) if (o.withActs?.[l] && typeof f === 'string') wf[l] = f;
+    if (Object.keys(wf).length) o.withFrom = wf; else delete o.withFrom; }
   if (o.nightNotes && typeof o.nightNotes === 'object') { delete o.nightNotes['Nuit chaude']; }
   if (o.rp) o.rp = who(o.rp);
   if (o.calmWith) o.calmWith = who(o.calmWith);
@@ -130,7 +133,7 @@ function withNews(id, date, pub) {
   if (!pub?.done || !pub.withActs) return out;
   const from = NOMS[id]?.player || null, checked = new Set(setList(pub.checked) || []);
   for (const [l, ids] of Object.entries(pub.withActs)) {
-    if (!checked.has(l) || isPrivateAct(l) || l === 'Voyage') continue;
+    if (!checked.has(l) || isPrivateAct(l) || l === 'Voyage' || pub.withFrom?.[l]) continue;   // une reprise ne refait pas de proposition
     for (const o of ids) {
       const to = NOMS[o]?.player;
       if (!ILOH_ONLY.includes(o) || !to || to === from) continue;

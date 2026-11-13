@@ -37,5 +37,9 @@ ok(JSON.stringify(b) === '{"11":{"added":["Soirée au club"],"with":{"Soirée au
 T.setPrivate({ $set: ['Instant coquin'] });
 ok(T.isPrivateAct('Instant coquin') && T.isPrivateAct('Livreur pressé') && !T.isPrivateAct('Studio'), 'activités marquées intimes dans Journée RP');
 T.setPrivate(null);
+{ const pub = T.publicEntry({ done: true, checked: { $set: ['Cuisine', 'Pêche'] }, withActs: { Cuisine: [T.ILOH_ONLY[0], T.MIRROR[0]], Pêche: [T.ILOH_ONLY[0]] }, withFrom: { Cuisine: T.MIRROR[0], 'Instant coquin': 'x' } });
+  ok(JSON.stringify(pub.withFrom) === JSON.stringify({ Cuisine: T.MIRROR[0] }), 'reprises : seulement pour les activités communes gardées');
+  const n = T.withNews(T.MIRROR[1], new Date(2026, 10, 13), pub);
+  ok(!Object.keys(n).some(k => k.endsWith(':Cuisine')), 'une reprise ne refait pas de proposition (pas de nouvelle)'); }
 console.log(fails ? `${fails} échec(s)` : 'Tout est bon.');
 process.exitCode = fails ? 1 : 0;

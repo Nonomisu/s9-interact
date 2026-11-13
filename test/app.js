@@ -256,7 +256,7 @@ const setWith = (id, l, other, on, quiet = false) => {
 };
 // Activités où un autre personnage (fiche validée) a mentionné celui-ci aujourd'hui.
 const sharedActsOf = id => C.filter(x => x.id !== id && state[x.id]?.done).flatMap(x => Object.entries(state[x.id].withActs || {})
-  .filter(([l, ids]) => ids.includes(id) && state[x.id].checked?.has(l)).map(([l, ids]) => ({ from: x.id, act: l, others: ids.filter(o => o !== id && isChar(o)) })));
+  .filter(([l, ids]) => ids.includes(id) && state[x.id].checked?.has(l) && !state[x.id].withFrom?.[l]).map(([l, ids]) => ({ from: x.id, act: l, others: ids.filter(o => o !== id && isChar(o)) })));
 const sharedActsHtml = (id, canJoin) => {
   const L = sharedActsOf(id), E = evActsOf(id); if (!L.length && !E.length) return '';
   const evItems = E.map(x => `<div class="shared-item"><span>${icon(evType(x.e.type).icon)}Événement de Solution 9 : « ${esc(x.e.text)} »${goingOf(x.e).length > 1 ? ` avec ${esc(andList(goingOf(x.e).filter(o => o !== id).map(nameOf)))}` : ''}.</span>
@@ -281,10 +281,12 @@ const joinAct = (id, from, l) => {
   s.checked.add(l);
   if (!s.slots[l] && state[from].slots?.[l]?.length) s.slots[l] = [...state[from].slots[l]];
   const told = new Set([playerOf(id)]);   // une seule nouvelle par joueur
-  [from, ...withOf(state[from].withActs, l).filter(o => o !== id && !skip.has(o))].forEach(o => { setWith(id, l, o, true, told.has(playerOf(o))); told.add(playerOf(o)); });
+  // Reprise : seul l'auteur est prévenu ; les autres personnages ont déjà eu la proposition de l'auteur (pas de nouvelle proposition).
+  (s.withFrom ||= {})[l] = from;
+  [from, ...withOf(state[from].withActs, l).filter(o => o !== id && !skip.has(o))].forEach(o => { setWith(id, l, o, true, o !== from || told.has(playerOf(o))); told.add(playerOf(o)); });
   saveComplement(id);
 };
-const clearWith = (id, l) => { const s = state[id]; withOf(s.withActs, l).forEach(o => dropNews([withKey(id, o, l)])); if (s.withActs) delete s.withActs[l]; };
+const clearWith = (id, l) => { const s = state[id]; withOf(s.withActs, l).forEach(o => dropNews([withKey(id, o, l)])); if (s.withActs) delete s.withActs[l]; if (s.withFrom) delete s.withFrom[l]; };
 // ---------- Compléments S9 Interact' des fiches recopiées de Journée RP ----------
 // La fiche vient de Journée RP (lecture seule ici) ; son joueur peut y ajouter, dans S9 Interact' seulement, les personnages
 // présents sur une activité, les activités communes reprises d'autres fiches, et des activités propres à Solution 9.
@@ -294,7 +296,7 @@ const canComplete = id => isMirror(id) && playerOf(id) === me;
 const mirrorBase = id => new Set(window.RP_SYNC?.rawToday?.(id)?.checked?.$set || []);
 const extraOf = id => {
   const s = state[id], base = mirrorBase(id), added = [...s.checked].filter(l => !base.has(l));
-  return { added, slots: Object.fromEntries(added.filter(l => s.slots?.[l]?.length).map(l => [l, [...s.slots[l]]])), withActs: JSON.parse(JSON.stringify(s.withActs || {})) };
+  return { added, slots: Object.fromEntries(added.filter(l => s.slots?.[l]?.length).map(l => [l, [...s.slots[l]]])), withActs: JSON.parse(JSON.stringify(s.withActs || {})), withFrom: { ...(s.withFrom || {}) } };
 };
 const saveComplement = id => { if (canComplete(id)) window.RP_SYNC?.saveExtra?.(id, extraOf(id)); };
 const complOpen = new Set();
@@ -3312,7 +3314,7 @@ initPlaces();
 
 // ---------- Persistance : ce que sync.js lit et enregistre dans Firestore ----------
 // Journée d'un personnage (champs enregistrés ; le reste de state[id] ne sert qu'à l'affichage).
-const ENTRY_KEYS = ['mood', 'checked', 'specials', 'slots', 'places', 'region', 'zone', 'trip', 'done', 'doneAt', 'phys', 'physNote',
+const ENTRY_KEYS = ['withFrom', 'mood', 'checked', 'specials', 'slots', 'places', 'region', 'zone', 'trip', 'done', 'doneAt', 'phys', 'physNote',
   'details', 'mental', 'stateNotes', 'nightStates', 'nightNote', 'nightNotes', 'huntSet', 'faits', 'dayEvents', 'infos', 'violet', 'contractOff', 'discordMsg', 'withActs'];
 const freshEntry = () => ({ mood:'', checked:new Set(), specials:[], slots:{}, places:new Set(), done:false, phys:new Set(), mental:new Set(), stateNotes:{}, nightStates:new Set() });
 // Firestore ne connaît ni les Set ni les Date : on les encode.
@@ -3477,6 +3479,7 @@ window.RP_APP = {
     out.checked = { $set: [...set] };
     if (x.slots) out.slots = { ...(out.slots || {}), ...x.slots };
     out.withActs = { ...(out.withActs || {}), ...(x.withActs || {}) };
+    if (x.withFrom) out.withFrom = { ...(out.withFrom || {}), ...x.withFrom };
     return out;
   },
   applyRequests: list => { Object.keys(REQUESTS).forEach(k => delete REQUESTS[k]); list.forEach(({ id, ...r }) => { REQUESTS[id] = r; }); },

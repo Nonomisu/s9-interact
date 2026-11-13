@@ -1,7 +1,7 @@
 
 // ---------- Persistance : ce que sync.js lit et enregistre dans Firestore ----------
 // Journée d'un personnage (champs enregistrés ; le reste de state[id] ne sert qu'à l'affichage).
-const ENTRY_KEYS = ['mood', 'checked', 'specials', 'slots', 'places', 'region', 'zone', 'trip', 'done', 'doneAt', 'phys', 'physNote',
+const ENTRY_KEYS = ['withFrom', 'mood', 'checked', 'specials', 'slots', 'places', 'region', 'zone', 'trip', 'done', 'doneAt', 'phys', 'physNote',
   'details', 'mental', 'stateNotes', 'nightStates', 'nightNote', 'nightNotes', 'huntSet', 'faits', 'dayEvents', 'infos', 'violet', 'contractOff', 'discordMsg', 'withActs'];
 const freshEntry = () => ({ mood:'', checked:new Set(), specials:[], slots:{}, places:new Set(), done:false, phys:new Set(), mental:new Set(), stateNotes:{}, nightStates:new Set() });
 // Firestore ne connaît ni les Set ni les Date : on les encode.
@@ -166,6 +166,7 @@ window.RP_APP = {
     out.checked = { $set: [...set] };
     if (x.slots) out.slots = { ...(out.slots || {}), ...x.slots };
     out.withActs = { ...(out.withActs || {}), ...(x.withActs || {}) };
+    if (x.withFrom) out.withFrom = { ...(out.withFrom || {}), ...x.withFrom };
     return out;
   },
   applyRequests: list => { Object.keys(REQUESTS).forEach(k => delete REQUESTS[k]); list.forEach(({ id, ...r }) => { REQUESTS[id] = r; }); },

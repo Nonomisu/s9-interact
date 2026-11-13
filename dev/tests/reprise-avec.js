@@ -36,6 +36,11 @@ const ok = (c, l) => { console.log((c ? '  ok  ' : '  ÉCHEC ') + l); if (!c) pr
   await jyn.evaluate(() => document.querySelector('[data-jp-who="tala"]').click()); await jyn.waitForTimeout(200);
   await jyn.evaluate(() => document.querySelector('[data-join-from="joy"]').click()); await jyn.waitForTimeout(1500);
   ok(await jyn.evaluate(() => JSON.stringify(state.prism.withActs?.Cuisine) === '["joy","aaron","yololo"]'), 'Prism : avec Joy, Aaron et Yololo (sans Tala)');
+  // Une reprise ne refait pas de proposition aux autres personnages
+  await jyn.waitForTimeout(800);
+  const nk = await jyn.evaluate(() => Object.values(JSON.parse(localStorage.getItem('mockdb'))).filter(v => v?.key?.startsWith?.('with:')).map(v => v.key));
+  ok(!nk.some(k => k.includes(':prism:yololo:')) && !nk.some(k => k.includes(':aaron:yololo:')), 'reprises : pas de nouvelle pour les autres personnages mentionnés');
+  ok(await jyn.evaluate(() => sharedActsOf('yololo').length === 1 && sharedActsOf('yololo')[0].from === 'joy'), 'une seule proposition (celle de l\'auteur) sur la fiche des autres');
   // Boutons flèches
   await jyn.evaluate(() => scrollTo(0, 0)); await jyn.waitForTimeout(300);
   const long = await jyn.evaluate(() => document.documentElement.scrollHeight - innerHeight > 300);
