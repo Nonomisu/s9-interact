@@ -50,6 +50,9 @@ const postRecap = async (c, blob, prev) => {
     attachments: [{ id: 0, filename: 'recap.png' }] };
   const form = () => { const f = new FormData(); f.append('payload_json', JSON.stringify(payload)); f.append('files[0]', blob, 'recap.png'); return f; };
   let res = prev ? await fetch(`${hook}/messages/${prev}`, { method: 'PATCH', body: form() }) : null;
+  // Nouveau message seulement s'il n'y en a pas encore, ou si l'ancien a été supprimé (404). Une autre erreur
+  // (Discord surchargé, réseau coupé…) ne doit jamais créer un doublon : on réessaiera plus tard.
+  if (res && !res.ok && res.status !== 404) throw new Error('Discord ' + res.status);
   if (!res || !res.ok) res = await fetch(`${hook}?wait=true`, { method: 'POST', body: form() });
   if (!res.ok) throw new Error('Discord ' + res.status);
   return (await res.json().catch(() => null))?.id || null;
@@ -255,7 +258,10 @@ const updateMirrors = async () => {
       try {
         updateScreen(names, i); shown = true;
         state[c.id].view = 'day'; go(c.id); await pause(350);
-        const msg = await postRecap(c, await recapBlob(2), prev);
+        const blob = await recapBlob(2);
+        const chk = await RP_SYNC.recapRecheck(c.id);
+        if (chk.lost) continue;                                   // un autre appareil s'en occupe
+        const msg = await postRecap(c, blob, chk.msg || prev);
         await RP_SYNC.recapSent(c.id, sig, msg); mirrorDone[c.id] = sig;
       } catch (e) { console.error(e); await RP_SYNC.recapFailed(c.id).catch(() => {}); }
     }

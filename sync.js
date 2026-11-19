@@ -46,6 +46,9 @@ const swReg = pushSupported() ? navigator.serviceWorker.register('sw.js').catch(
 const b64u = s => { const b = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
 const subRef = async endpoint => doc(db, 'pushSubs', me, 'subs', (await sha256(endpoint)).slice(0, 40));
 const wrapsRef = y => doc(db, 'shared', 'wraps-' + y);
+// Réservation par appareil (et non par joueur) : le PC et l'iPhone (ou deux onglets) d'un même joueur ne peuvent plus envoyer la même fiche en double.
+const DEVICE = (() => { try { let d = sessionStorage.getItem('rp-device'); if (!d) sessionStorage.setItem('rp-device', d = Math.random().toString(36).slice(2, 10)); return d; } catch { return Math.random().toString(36).slice(2, 10); } })();
+const claimer = () => me + ':' + DEVICE;
 const recapsRef = () => doc(db, 'shared', 'recaps-' + A.iso);
 const evRef = doc(db, 'shared', 'events');
 const newsRef = key => doc(db, 'news', String(key).replace(/\//g, '_'));
@@ -146,9 +149,17 @@ window.RP_SYNC = {
   recapClaim: (id, sig) => runTransaction(db, async tx => {
     const ref = recapsRef(), d = (await tx.get(ref)).data() || {}, r = d[id] || {};
     if (r.msg && r.sig === sig) return 'done';
-    if (r.claimedAt && Date.now() - r.claimedAt < 120e3 && r.claimedBy !== me) return null;
-    tx.set(ref, { [id]: { ...r, claimedBy: me, claimedAt: Date.now() } }, { merge: true });
+    if (r.claimedAt && Date.now() - r.claimedAt < 120e3 && r.claimedBy !== claimer()) return null;
+    tx.set(ref, { [id]: { ...r, claimedBy: claimer(), claimedAt: Date.now() } }, { merge: true });
     return { msg: r.msg || null, batch: d._batch?.msg || null };   // batch : ancien message groupé du jour, à supprimer
+  }),
+  // Juste avant l'envoi : la fiche est-elle toujours réservée par CET appareil ? (un iPhone mis en veille pendant l'envoi
+  // perd sa réservation au bout de 2 min ; un autre appareil a pu l'envoyer entre-temps → on reprend son message.)
+  recapRecheck: id => runTransaction(db, async tx => {
+    const ref = recapsRef(), r = ((await tx.get(ref)).data() || {})[id] || {};
+    if (r.claimedBy !== claimer() && r.claimedAt && Date.now() - r.claimedAt < 120e3) return { lost: true };
+    tx.set(ref, { [id]: { claimedBy: claimer(), claimedAt: Date.now() } }, { merge: true });
+    return { msg: r.msg || null };
   }),
   recapSent: (id, sig, msg) => setDoc(recapsRef(), { [id]: { msg, sig, claimedBy: null, claimedAt: 0, sentBy: me, sentAt: Date.now() } }, { merge: true }),
   recapFailed: id => setDoc(recapsRef(), { [id]: { claimedAt: 0 } }, { merge: true }),
